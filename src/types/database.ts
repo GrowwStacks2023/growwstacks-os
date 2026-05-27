@@ -55,6 +55,117 @@ export type Database = {
           },
         ]
       }
+      communications: {
+        Row: {
+          body: string | null
+          channel: Database["public"]["Enums"]["comm_channel"]
+          company_id: string | null
+          contact_id: string | null
+          created_at: string
+          deal_id: string | null
+          direction: Database["public"]["Enums"]["comm_direction"]
+          external_id: string | null
+          id: string
+          metadata: Json | null
+          project_id: string | null
+          received_at: string
+          recipient: string | null
+          replied_at: string | null
+          replied_by: string | null
+          reply_due_at: string | null
+          requires_reply: boolean
+          sender: string
+          sla_state: Database["public"]["Enums"]["sla_state"]
+          subject: string | null
+          thread_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          body?: string | null
+          channel: Database["public"]["Enums"]["comm_channel"]
+          company_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          deal_id?: string | null
+          direction: Database["public"]["Enums"]["comm_direction"]
+          external_id?: string | null
+          id?: string
+          metadata?: Json | null
+          project_id?: string | null
+          received_at: string
+          recipient?: string | null
+          replied_at?: string | null
+          replied_by?: string | null
+          reply_due_at?: string | null
+          requires_reply?: boolean
+          sender: string
+          sla_state?: Database["public"]["Enums"]["sla_state"]
+          subject?: string | null
+          thread_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          body?: string | null
+          channel?: Database["public"]["Enums"]["comm_channel"]
+          company_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          deal_id?: string | null
+          direction?: Database["public"]["Enums"]["comm_direction"]
+          external_id?: string | null
+          id?: string
+          metadata?: Json | null
+          project_id?: string | null
+          received_at?: string
+          recipient?: string | null
+          replied_at?: string | null
+          replied_by?: string | null
+          reply_due_at?: string | null
+          requires_reply?: boolean
+          sender?: string
+          sla_state?: Database["public"]["Enums"]["sla_state"]
+          subject?: string | null
+          thread_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communications_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communications_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communications_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communications_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communications_replied_by_fkey"
+            columns: ["replied_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           business_hours_end: string
@@ -142,6 +253,133 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credential_access_log: {
+        Row: {
+          access_type: string
+          accessed_at: string
+          accessed_by: string | null
+          credential_id: string
+          id: string
+          ip_address: unknown
+          reason: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          access_type: string
+          accessed_at?: string
+          accessed_by?: string | null
+          credential_id: string
+          id?: string
+          ip_address?: unknown
+          reason?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          access_type?: string
+          accessed_at?: string
+          accessed_by?: string | null
+          credential_id?: string
+          id?: string
+          ip_address?: unknown
+          reason?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credential_access_log_accessed_by_fkey"
+            columns: ["accessed_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credential_access_log_credential_id_fkey"
+            columns: ["credential_id"]
+            isOneToOne: false
+            referencedRelation: "credentials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credentials: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          credential_type: Database["public"]["Enums"]["credential_type"]
+          encrypted_value: string
+          encryption_version: number
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          label: string
+          last_rotated_at: string | null
+          notes_encrypted: string | null
+          project_id: string | null
+          updated_at: string
+          url: string | null
+          username: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          credential_type: Database["public"]["Enums"]["credential_type"]
+          encrypted_value: string
+          encryption_version?: number
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          label: string
+          last_rotated_at?: string | null
+          notes_encrypted?: string | null
+          project_id?: string | null
+          updated_at?: string
+          url?: string | null
+          username?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          credential_type?: Database["public"]["Enums"]["credential_type"]
+          encrypted_value?: string
+          encryption_version?: number
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string
+          last_rotated_at?: string | null
+          notes_encrypted?: string | null
+          project_id?: string | null
+          updated_at?: string
+          url?: string | null
+          username?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credentials_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credentials_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credentials_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -345,6 +583,91 @@ export type Database = {
           },
         ]
       }
+      sla_breaches: {
+        Row: {
+          communication_id: string
+          created_at: string
+          id: string
+          notified_at: string
+          notified_user_ids: string[]
+          resolution_note: string | null
+          resolved_at: string | null
+          tier: number
+        }
+        Insert: {
+          communication_id: string
+          created_at?: string
+          id?: string
+          notified_at?: string
+          notified_user_ids?: string[]
+          resolution_note?: string | null
+          resolved_at?: string | null
+          tier: number
+        }
+        Update: {
+          communication_id?: string
+          created_at?: string
+          id?: string
+          notified_at?: string
+          notified_user_ids?: string[]
+          resolution_note?: string | null
+          resolved_at?: string | null
+          tier?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sla_breaches_communication_id_fkey"
+            columns: ["communication_id"]
+            isOneToOne: false
+            referencedRelation: "communications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sla_rules: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          respect_business_hours: boolean
+          tier_1_minutes: number
+          tier_2_minutes: number
+          tier_3_minutes: number
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          respect_business_hours?: boolean
+          tier_1_minutes?: number
+          tier_2_minutes?: number
+          tier_3_minutes?: number
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          respect_business_hours?: boolean
+          tier_1_minutes?: number
+          tier_2_minutes?: number
+          tier_3_minutes?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sla_rules_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           actual_hours: number | null
@@ -466,7 +789,25 @@ export type Database = {
       }
     }
     Enums: {
+      comm_channel:
+        | "outlook"
+        | "whatsapp"
+        | "upwork"
+        | "slack"
+        | "email"
+        | "sms"
+        | "phone"
+      comm_direction: "inbound" | "outbound"
       company_type: "client" | "prospect" | "partner"
+      credential_type:
+        | "cms"
+        | "hosting"
+        | "social_media"
+        | "email"
+        | "analytics"
+        | "database"
+        | "api_key"
+        | "other"
       deal_source: "upwork" | "linkedin" | "referral" | "inbound" | "other"
       deal_stage:
         | "new"
@@ -482,6 +823,13 @@ export type Database = {
         | "on_hold"
         | "completed"
         | "cancelled"
+      sla_state:
+        | "none"
+        | "pending"
+        | "breached_l1"
+        | "breached_l2"
+        | "breached_l3"
+        | "resolved"
       task_priority: "low" | "medium" | "high" | "urgent"
       task_status: "todo" | "in_progress" | "review" | "done" | "blocked"
       user_role: "admin" | "sales" | "pm" | "developer" | "client"
@@ -612,7 +960,27 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      comm_channel: [
+        "outlook",
+        "whatsapp",
+        "upwork",
+        "slack",
+        "email",
+        "sms",
+        "phone",
+      ],
+      comm_direction: ["inbound", "outbound"],
       company_type: ["client", "prospect", "partner"],
+      credential_type: [
+        "cms",
+        "hosting",
+        "social_media",
+        "email",
+        "analytics",
+        "database",
+        "api_key",
+        "other",
+      ],
       deal_source: ["upwork", "linkedin", "referral", "inbound", "other"],
       deal_stage: [
         "new",
@@ -629,6 +997,14 @@ export const Constants = {
         "on_hold",
         "completed",
         "cancelled",
+      ],
+      sla_state: [
+        "none",
+        "pending",
+        "breached_l1",
+        "breached_l2",
+        "breached_l3",
+        "resolved",
       ],
       task_priority: ["low", "medium", "high", "urgent"],
       task_status: ["todo", "in_progress", "review", "done", "blocked"],
