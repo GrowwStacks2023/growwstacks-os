@@ -146,6 +146,281 @@ export type Database = {
           },
         ]
       }
+      deals: {
+        Row: {
+          company_id: string
+          contact_id: string | null
+          created_at: string
+          description: string | null
+          external_ghl_id: string | null
+          id: string
+          lost_at: string | null
+          lost_reason: string | null
+          owner_id: string | null
+          source: Database["public"]["Enums"]["deal_source"]
+          stage: Database["public"]["Enums"]["deal_stage"]
+          title: string
+          updated_at: string
+          value_inr: number | null
+          value_usd: number | null
+          won_at: string | null
+        }
+        Insert: {
+          company_id: string
+          contact_id?: string | null
+          created_at?: string
+          description?: string | null
+          external_ghl_id?: string | null
+          id?: string
+          lost_at?: string | null
+          lost_reason?: string | null
+          owner_id?: string | null
+          source?: Database["public"]["Enums"]["deal_source"]
+          stage?: Database["public"]["Enums"]["deal_stage"]
+          title: string
+          updated_at?: string
+          value_inr?: number | null
+          value_usd?: number | null
+          won_at?: string | null
+        }
+        Update: {
+          company_id?: string
+          contact_id?: string | null
+          created_at?: string
+          description?: string | null
+          external_ghl_id?: string | null
+          id?: string
+          lost_at?: string | null
+          lost_reason?: string | null
+          owner_id?: string | null
+          source?: Database["public"]["Enums"]["deal_source"]
+          stage?: Database["public"]["Enums"]["deal_stage"]
+          title?: string
+          updated_at?: string
+          value_inr?: number | null
+          value_usd?: number | null
+          won_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      milestones: {
+        Row: {
+          client_visible: boolean
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          project_id: string
+          sequence: number
+          status: Database["public"]["Enums"]["milestone_status"]
+          target_date: string | null
+          updated_at: string
+        }
+        Insert: {
+          client_visible?: boolean
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          project_id: string
+          sequence: number
+          status?: Database["public"]["Enums"]["milestone_status"]
+          target_date?: string | null
+          updated_at?: string
+        }
+        Update: {
+          client_visible?: boolean
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          project_id?: string
+          sequence?: number
+          status?: Database["public"]["Enums"]["milestone_status"]
+          target_date?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "milestones_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          actual_end_at: string | null
+          client_visible: boolean
+          company_id: string
+          created_at: string
+          deal_id: string | null
+          description: string | null
+          expected_end_at: string | null
+          id: string
+          name: string
+          pm_id: string | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["project_status"]
+          updated_at: string
+        }
+        Insert: {
+          actual_end_at?: string | null
+          client_visible?: boolean
+          company_id: string
+          created_at?: string
+          deal_id?: string | null
+          description?: string | null
+          expected_end_at?: string | null
+          id?: string
+          name: string
+          pm_id?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["project_status"]
+          updated_at?: string
+        }
+        Update: {
+          actual_end_at?: string | null
+          client_visible?: boolean
+          company_id?: string
+          created_at?: string
+          deal_id?: string | null
+          description?: string | null
+          expected_end_at?: string | null
+          id?: string
+          name?: string
+          pm_id?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["project_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_pm_id_fkey"
+            columns: ["pm_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tasks: {
+        Row: {
+          actual_hours: number | null
+          assignee_id: string | null
+          client_visible: boolean
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          due_at: string | null
+          estimate_hours: number | null
+          id: string
+          milestone_id: string
+          priority: Database["public"]["Enums"]["task_priority"]
+          project_id: string
+          status: Database["public"]["Enums"]["task_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          actual_hours?: number | null
+          assignee_id?: string | null
+          client_visible?: boolean
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          due_at?: string | null
+          estimate_hours?: number | null
+          id?: string
+          milestone_id: string
+          priority?: Database["public"]["Enums"]["task_priority"]
+          project_id: string
+          status?: Database["public"]["Enums"]["task_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          actual_hours?: number | null
+          assignee_id?: string | null
+          client_visible?: boolean
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          due_at?: string | null
+          estimate_hours?: number | null
+          id?: string
+          milestone_id?: string
+          priority?: Database["public"]["Enums"]["task_priority"]
+          project_id?: string
+          status?: Database["public"]["Enums"]["task_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_assignee_id_fkey"
+            columns: ["assignee_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "milestones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       users: {
         Row: {
           created_at: string
@@ -185,9 +460,30 @@ export type Database = {
         Args: never
         Returns: Database["public"]["Enums"]["user_role"]
       }
+      user_has_task_in_project: {
+        Args: { target_project_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       company_type: "client" | "prospect" | "partner"
+      deal_source: "upwork" | "linkedin" | "referral" | "inbound" | "other"
+      deal_stage:
+        | "new"
+        | "qualified"
+        | "proposal_sent"
+        | "negotiation"
+        | "won"
+        | "lost"
+      milestone_status: "not_started" | "in_progress" | "completed" | "blocked"
+      project_status:
+        | "planning"
+        | "active"
+        | "on_hold"
+        | "completed"
+        | "cancelled"
+      task_priority: "low" | "medium" | "high" | "urgent"
+      task_status: "todo" | "in_progress" | "review" | "done" | "blocked"
       user_role: "admin" | "sales" | "pm" | "developer" | "client"
     }
     CompositeTypes: {
@@ -317,6 +613,25 @@ export const Constants = {
   public: {
     Enums: {
       company_type: ["client", "prospect", "partner"],
+      deal_source: ["upwork", "linkedin", "referral", "inbound", "other"],
+      deal_stage: [
+        "new",
+        "qualified",
+        "proposal_sent",
+        "negotiation",
+        "won",
+        "lost",
+      ],
+      milestone_status: ["not_started", "in_progress", "completed", "blocked"],
+      project_status: [
+        "planning",
+        "active",
+        "on_hold",
+        "completed",
+        "cancelled",
+      ],
+      task_priority: ["low", "medium", "high", "urgent"],
+      task_status: ["todo", "in_progress", "review", "done", "blocked"],
       user_role: ["admin", "sales", "pm", "developer", "client"],
     },
   },
