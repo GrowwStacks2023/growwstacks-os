@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { Page, PageHeader } from "@/components/page-shell";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { canEditProjectArea } from "@/lib/access";
+import { getCurrentRole } from "@/lib/access-server";
+import { userDisplay } from "@/lib/display";
 import { PROJECT_STATUS } from "@/lib/status-colors";
 import { createClient } from "@/lib/supabase/server";
 
@@ -29,6 +33,9 @@ const dateFormatter = new Intl.DateTimeFormat("en-US", {
 
 export default async function ProjectsPage() {
   const supabase = await createClient();
+  const role = await getCurrentRole();
+  const canEdit = canEditProjectArea(role);
+
   const { data: projects, error } = await supabase
     .from("projects")
     .select(
@@ -36,19 +43,49 @@ export default async function ProjectsPage() {
     )
     .order("created_at", { ascending: false });
 
+  // Milestone progress per project (admin/sales/pm/dev all benefit from
+  // the summary; sales especially needs it as their read-only signal of
+  // how delivery is going). One ranged query, group client-side.
+  const projectIds = (projects ?? []).map((p) => p.id);
+  let milestoneStats = new Map<
+    string,
+    { total: number; completed: number }
+  >();
+  if (projectIds.length > 0) {
+    const { data: milestoneRows } = await supabase
+      .from("milestones")
+      .select("project_id, status")
+      .in("project_id", projectIds);
+    milestoneStats = new Map(projectIds.map((id) => [id, { total: 0, completed: 0 }]));
+    for (const m of milestoneRows ?? []) {
+      const bucket = milestoneStats.get(m.project_id);
+      if (!bucket) continue;
+      bucket.total += 1;
+      if (m.status === "completed") bucket.completed += 1;
+    }
+  }
+
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-heading text-xl font-medium">Projects</h1>
-          <p className="text-sm text-muted-foreground">
-            Engagements in flight.
-          </p>
-        </div>
-        <Button render={<Link href="/dashboard/projects/new" />}>
-          New project
-        </Button>
-      </div>
+    <Page>
+      <PageHeader
+        breadcrumbs={[
+          { label: "Dashboard", href: "/dashboard" },
+          { label: "Projects" },
+        ]}
+        title="Projects"
+        description={
+          canEdit
+            ? "Engagements in flight."
+            : "Engagements in flight — read-only view."
+        }
+        action={
+          canEdit ? (
+            <Button render={<Link href="/dashboard/projects/new" />}>
+              New project
+            </Button>
+          ) : null
+        }
+      />
 
       {error ? (
         <Alert variant="destructive">
@@ -64,14 +101,18 @@ export default async function ProjectsPage() {
             <CardHeader>
               <CardTitle className="text-base">No projects yet</CardTitle>
               <CardDescription>
-                No projects yet. Create your first one.
+                {canEdit
+                  ? "No projects yet. Create your first one."
+                  : "No projects to show yet."}
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <Button render={<Link href="/dashboard/projects/new" />}>
-                Create project
-              </Button>
-            </CardContent>
+            {canEdit ? (
+              <CardContent>
+                <Button render={<Link href="/dashboard/projects/new" />}>
+                  Create project
+                </Button>
+              </CardContent>
+            ) : null}
           </>
         ) : (
           <CardContent className="p-0">
@@ -81,6 +122,7 @@ export default async function ProjectsPage() {
                   <TableHead className="pl-4">Name</TableHead>
                   <TableHead>Company</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Progress</TableHead>
                   <TableHead>PM</TableHead>
                   <TableHead className="pr-4">Target end</TableHead>
                 </TableRow>
@@ -88,8 +130,11 @@ export default async function ProjectsPage() {
               <TableBody>
                 {projects.map((project) => {
                   const status = PROJECT_STATUS[project.status];
-                  const pmDisplay =
-                    project.pm?.name ?? project.pm?.email ?? "—";
+                  const pmDisplay = userDisplay(project.pm, "—");
+                  const stats = milestoneStats.get(project.id);
+                  const progressLabel = stats && stats.total > 0
+                    ? `${stats.completed} / ${stats.total} milestones`
+                    : "—";
                   return (
                     <TableRow key={project.id}>
                       <TableCell className="pl-4 font-medium">
@@ -112,6 +157,9 @@ export default async function ProjectsPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
+                        {progressLabel}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
                         {pmDisplay}
                       </TableCell>
                       <TableCell className="pr-4 text-muted-foreground">
@@ -129,6 +177,6 @@ export default async function ProjectsPage() {
           </CardContent>
         )}
       </Card>
-    </div>
+    </Page>
   );
 }

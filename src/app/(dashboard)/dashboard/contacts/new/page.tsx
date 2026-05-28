@@ -1,10 +1,5 @@
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Page, PageHeader } from "@/components/page-shell";
+import { Card, CardContent } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 
 import { NewContactForm } from "./new-contact-form";
@@ -17,18 +12,21 @@ export default async function NewContactPage() {
     .order("name", { ascending: true });
 
   return (
-    <div className="flex justify-center">
-      <Card className="w-full max-w-[560px]">
-        <CardHeader>
-          <CardTitle className="text-base">New contact</CardTitle>
-          <CardDescription>
-            A contact can stand alone or belong to a company.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+    <Page>
+      <PageHeader
+        breadcrumbs={[
+          { label: "Dashboard", href: "/dashboard" },
+          { label: "Contacts", href: "/dashboard/contacts" },
+          { label: "New contact" },
+        ]}
+        title="New contact"
+        description="A contact can stand alone or belong to a company."
+      />
+      <Card className="w-full max-w-[640px]">
+        <CardContent className="pt-6">
           <NewContactForm companies={companies ?? []} />
         </CardContent>
       </Card>
-    </div>
+    </Page>
   );
 }

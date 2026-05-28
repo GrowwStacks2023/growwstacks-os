@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { useActionState } from "react";
 
+import { Field, FormActions, FormRow } from "@/components/form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -36,9 +36,8 @@ export function NewMilestoneForm({
   );
 
   return (
-    <form action={formAction} className="flex flex-col gap-4">
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="name">Name</Label>
+    <form action={formAction} className="flex flex-col gap-5">
+      <Field id="name" label="Name" required>
         <Input
           id="name"
           name="name"
@@ -47,21 +46,24 @@ export function NewMilestoneForm({
           required
           disabled={pending}
         />
-      </div>
+      </Field>
 
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="description">Description</Label>
+      <Field id="description" label="Description" optional>
         <Textarea
           id="description"
           name="description"
           rows={3}
           disabled={pending}
         />
-      </div>
+      </Field>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="sequence">Sequence</Label>
+      <FormRow>
+        <Field
+          id="sequence"
+          label="Sequence"
+          required
+          description="The order this milestone appears in the project."
+        >
           <Input
             id="sequence"
             name="sequence"
@@ -72,9 +74,8 @@ export function NewMilestoneForm({
             required
             disabled={pending}
           />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="status">Status</Label>
+        </Field>
+        <Field id="status" label="Status">
           <Select name="status" defaultValue="not_started" disabled={pending}>
             <SelectTrigger id="status" className="w-full">
               <SelectValue />
@@ -87,18 +88,17 @@ export function NewMilestoneForm({
               ))}
             </SelectContent>
           </Select>
-        </div>
-      </div>
+        </Field>
+      </FormRow>
 
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="target_date">Target date</Label>
+      <Field id="target_date" label="Target date" optional>
         <Input
           id="target_date"
           name="target_date"
           type="date"
           disabled={pending}
         />
-      </div>
+      </Field>
 
       {state.error ? (
         <Alert variant="destructive">
@@ -106,7 +106,7 @@ export function NewMilestoneForm({
         </Alert>
       ) : null}
 
-      <div className="mt-2 flex items-center justify-end gap-2">
+      <FormActions>
         <Button
           type="button"
           variant="outline"
@@ -118,7 +118,7 @@ export function NewMilestoneForm({
         <Button type="submit" disabled={pending}>
           {pending ? "Creating…" : "Create milestone"}
         </Button>
-      </div>
+      </FormActions>
     </form>
   );
 }

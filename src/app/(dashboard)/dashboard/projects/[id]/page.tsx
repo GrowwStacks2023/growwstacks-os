@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { AttachmentsCard } from "@/components/attachments";
+import { Page, PageHeader, Section } from "@/components/page-shell";
+import { PaymentsCard } from "@/components/payments";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,7 +14,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { canEditProjectArea } from "@/lib/access";
+import { getCurrentRole } from "@/lib/access-server";
+import { userDisplay } from "@/lib/display";
 import {
   MILESTONE_STATUS,
   PROJECT_STATUS,
@@ -50,11 +54,13 @@ export default async function ProjectDetailPage({
 }) {
   const { id } = await params;
   const supabase = await createClient();
+  const role = await getCurrentRole();
+  const canEdit = canEditProjectArea(role);
 
   const { data: project, error: projectError } = await supabase
     .from("projects")
     .select(
-      "id, name, description, status, started_at, expected_end_at, company:companies(name), pm:users(name, email)"
+      "id, name, description, status, started_at, expected_end_at, company_id, company:companies(name), pm:users(name, email), deal:deals(value_inr, value_usd)"
     )
     .eq("id", id)
     .maybeSingle();
@@ -73,19 +79,24 @@ export default async function ProjectDetailPage({
     notFound();
   }
 
+  // For sales (read-only summary), we don't need the task drilldown —
+  // skip that fetch entirely. Milestones are still fetched so the summary
+  // can show progress.
   const [{ data: milestones }, { data: tasks }] = await Promise.all([
     supabase
       .from("milestones")
       .select("id, sequence, name, description, status, target_date")
       .eq("project_id", id)
       .order("sequence", { ascending: true }),
-    supabase
-      .from("tasks")
-      .select(
-        "id, milestone_id, title, status, priority, due_at, estimate_hours, assignee:users(name, email)"
-      )
-      .eq("project_id", id)
-      .order("created_at", { ascending: true }),
+    canEdit
+      ? supabase
+          .from("tasks")
+          .select(
+            "id, milestone_id, title, status, priority, due_at, estimate_hours, assignee:users!tasks_assignee_id_fkey(name, email)"
+          )
+          .eq("project_id", id)
+          .order("created_at", { ascending: true })
+      : Promise.resolve({ data: [] as TaskRow[] }),
   ]);
 
   const tasksByMilestone = new Map<string, TaskRow[]>();
@@ -96,75 +107,86 @@ export default async function ProjectDetailPage({
   }
 
   const projectStatus = PROJECT_STATUS[project.status];
-  const pmDisplay = project.pm?.name ?? project.pm?.email ?? "Unassigned";
+  const pmDisplay = userDisplay(project.pm, "Unassigned");
+
+  // Summary numbers for the sales-mode header line.
+  const totalMilestones = milestones?.length ?? 0;
+  const completedMilestones = (milestones ?? []).filter(
+    (m) => m.status === "completed"
+  ).length;
 
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <Link
-          href="/dashboard/projects"
-          className="text-sm text-muted-foreground hover:underline"
-        >
-          ← Projects
-        </Link>
-      </div>
-
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-3">
-            <h1 className="font-heading text-2xl font-medium">
-              {project.name}
-            </h1>
-            <Badge
-              variant={projectStatus.variant}
-              className={projectStatus.className}
-            >
-              {projectStatus.label}
-            </Badge>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            {project.company?.name ?? "—"} · PM: {pmDisplay}
-          </p>
-          <p className="text-sm text-muted-foreground">
+    <Page>
+      <PageHeader
+        breadcrumbs={[
+          { label: "Dashboard", href: "/dashboard" },
+          { label: "Projects", href: "/dashboard/projects" },
+          { label: project.name },
+        ]}
+        title={project.name}
+        description={
+          <>
+            {project.company?.name ?? "—"} · PM: {pmDisplay} ·{" "}
             {formatDate(project.started_at)} →{" "}
             {formatDate(project.expected_end_at)}
-          </p>
-          {project.description ? (
-            <p className="mt-2 max-w-2xl text-sm text-foreground/90">
-              {project.description}
-            </p>
-          ) : null}
-        </div>
-        <Button
-          render={<Link href={`/dashboard/projects/${id}/milestones/new`} />}
-        >
-          Add milestone
-        </Button>
-      </div>
+            {!canEdit ? (
+              <span className="text-xs">
+                {" "}· Read-only view · {completedMilestones} /{" "}
+                {totalMilestones} milestones complete
+              </span>
+            ) : null}
+          </>
+        }
+        meta={
+          <Badge
+            variant={projectStatus.variant}
+            className={projectStatus.className}
+          >
+            {projectStatus.label}
+          </Badge>
+        }
+        action={
+          canEdit ? (
+            <Button
+              render={
+                <Link href={`/dashboard/projects/${id}/milestones/new`} />
+              }
+            >
+              Add milestone
+            </Button>
+          ) : null
+        }
+      />
 
-      <Separator />
+      {project.description ? (
+        <p className="max-w-2xl text-sm text-foreground/90">
+          {project.description}
+        </p>
+      ) : null}
 
-      <div className="flex flex-col gap-4">
-        <h2 className="font-heading text-lg font-medium">Milestones</h2>
+      <Section title="Milestones">
 
         {!milestones || milestones.length === 0 ? (
           <Card>
             <CardHeader>
               <CardTitle className="text-base">No milestones yet</CardTitle>
               <CardDescription>
-                Add the first phase of this project to start breaking work
-                down.
+                {canEdit
+                  ? "Add the first phase of this project to start breaking work down."
+                  : "No milestones to show yet."}
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <Button
-                render={
-                  <Link href={`/dashboard/projects/${id}/milestones/new`} />
-                }
-              >
-                Add milestone
-              </Button>
-            </CardContent>
+            {canEdit ? (
+              <CardContent>
+                <Button
+                  render={
+                    <Link href={`/dashboard/projects/${id}/milestones/new`} />
+                  }
+                >
+                  Add milestone
+                </Button>
+              </CardContent>
+            ) : null}
           </Card>
         ) : (
           milestones.map((milestone) => {
@@ -205,19 +227,22 @@ export default async function ProjectDetailPage({
                         </p>
                       ) : null}
                     </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      render={
-                        <Link
-                          href={`/dashboard/projects/${id}/milestones/${milestone.id}/tasks/new`}
-                        />
-                      }
-                    >
-                      Add task
-                    </Button>
+                    {canEdit ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        render={
+                          <Link
+                            href={`/dashboard/projects/${id}/milestones/${milestone.id}/tasks/new`}
+                          />
+                        }
+                      >
+                        Add task
+                      </Button>
+                    ) : null}
                   </div>
                 </CardHeader>
+                {canEdit ? (
                 <CardContent>
                   {milestoneTasks.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
@@ -228,10 +253,10 @@ export default async function ProjectDetailPage({
                       {milestoneTasks.map((task) => {
                         const taskStatus = TASK_STATUS[task.status];
                         const taskPriority = TASK_PRIORITY[task.priority];
-                        const assigneeDisplay =
-                          task.assignee?.name ??
-                          task.assignee?.email ??
-                          "Unassigned";
+                        const assigneeDisplay = userDisplay(
+                          task.assignee,
+                          "Unassigned"
+                        );
                         return (
                           <li
                             key={task.id}
@@ -274,17 +299,40 @@ export default async function ProjectDetailPage({
                     </ul>
                   )}
                 </CardContent>
+                ) : null}
               </Card>
             );
           })
         )}
-      </div>
+      </Section>
 
-      <AttachmentsCard
-        entityType="project"
-        entityId={project.id}
+      {/*
+        PaymentsCard stays for sales — the access matrix grants sales
+        full payment read+write. The card itself role-gates internally
+        (devs/clients see nothing) so we render it for everyone here.
+      */}
+      <PaymentsCard
+        projectId={project.id}
+        companyId={project.company_id}
+        expectedInr={project.deal?.value_inr ?? null}
+        expectedUsd={project.deal?.value_usd ?? null}
         revalidatePath={`/dashboard/projects/${id}`}
       />
-    </div>
+
+      {/*
+        Attachments card hidden for the sales read-only view. The
+        AttachmentsPanel doesn't yet have a view-only mode (upload form
+        is built in); rather than ship a half-protected version, we hide
+        the whole card. Sales who need a file should pull it from the
+        deal/contact page where it was attached originally.
+      */}
+      {canEdit ? (
+        <AttachmentsCard
+          entityType="project"
+          entityId={project.id}
+          revalidatePath={`/dashboard/projects/${id}`}
+        />
+      ) : null}
+    </Page>
   );
 }

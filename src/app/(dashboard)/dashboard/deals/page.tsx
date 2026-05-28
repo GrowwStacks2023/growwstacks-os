@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { Page, PageHeader } from "@/components/page-shell";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { userDisplay } from "@/lib/display";
 import {
   DEAL_SOURCE,
   DEAL_STAGE,
@@ -87,16 +89,18 @@ export default async function DealsPage() {
   for (const deal of rows) byStage.get(deal.stage)?.push(deal);
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-heading text-xl font-medium">Deals</h1>
-          <p className="text-sm text-muted-foreground">
-            Sales pipeline, grouped by stage.
-          </p>
-        </div>
-        <Button render={<Link href="/dashboard/deals/new" />}>New deal</Button>
-      </div>
+    <Page>
+      <PageHeader
+        breadcrumbs={[
+          { label: "Dashboard", href: "/dashboard" },
+          { label: "Deals" },
+        ]}
+        title="Deals"
+        description="Sales pipeline, grouped by stage."
+        action={
+          <Button render={<Link href="/dashboard/deals/new" />}>New deal</Button>
+        }
+      />
 
       {error ? (
         <Alert variant="destructive">
@@ -161,8 +165,7 @@ export default async function DealsPage() {
                       {stageDeals.map((deal) => {
                         const value = formatDealValue(deal);
                         const sourceVisual = DEAL_SOURCE[deal.source];
-                        const ownerDisplay =
-                          deal.owner?.name ?? deal.owner?.email ?? "Unassigned";
+                        const ownerDisplay = userDisplay(deal.owner, "Unassigned");
                         return (
                           <div
                             key={deal.id}
@@ -204,6 +207,6 @@ export default async function DealsPage() {
           })}
         </div>
       )}
-    </div>
+    </Page>
   );
 }

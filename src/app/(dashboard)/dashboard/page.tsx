@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { Page, PageHeader } from "@/components/page-shell";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -17,6 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { userDisplay } from "@/lib/display";
 import {
   DEAL_STAGE,
   DEAL_STAGE_ORDER,
@@ -104,7 +106,10 @@ export default async function DashboardPage() {
     .eq("id", user.id)
     .maybeSingle();
 
-  const displayName = profile?.name ?? profile?.email ?? user.email ?? "there";
+  const displayName = userDisplay(
+    { name: profile?.name ?? null, email: profile?.email ?? user.email ?? null },
+    "there"
+  );
   const role = profile?.role;
   const canSeePipeline = role ? PIPELINE_ROLES.has(role) : false;
 
@@ -187,13 +192,9 @@ export default async function DashboardPage() {
   const now = Date.now();
 
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="font-heading text-xl font-medium">Dashboard</h1>
-        <p className="text-sm text-muted-foreground">
-          Welcome back, {displayName}.
-        </p>
-      </div>
+    <Page>
+      {/* Dashboard root — no breadcrumbs since this IS Dashboard. */}
+      <PageHeader title="Dashboard" description={`Welcome back, ${displayName}.`} />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card>
@@ -320,8 +321,7 @@ export default async function DashboardPage() {
                       total: 0,
                       completed: 0,
                     };
-                    const pmDisplay =
-                      project.pm?.name ?? project.pm?.email ?? "—";
+                    const pmDisplay = userDisplay(project.pm, "—");
                     const pastDue = project.expected_end_at
                       ? new Date(project.expected_end_at).getTime() < now
                       : false;
@@ -423,6 +423,6 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
       ) : null}
-    </div>
+    </Page>
   );
 }

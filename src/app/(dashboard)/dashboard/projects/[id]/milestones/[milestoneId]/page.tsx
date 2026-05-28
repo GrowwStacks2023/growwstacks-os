@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { AttachmentsCard } from "@/components/attachments";
+import { Page, PageHeader } from "@/components/page-shell";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,7 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { userDisplay } from "@/lib/display";
 import {
   MILESTONE_STATUS,
   TASK_PRIORITY,
@@ -66,7 +67,7 @@ export default async function MilestoneDetailPage({
   const { data: tasks } = await supabase
     .from("tasks")
     .select(
-      "id, title, status, priority, due_at, estimate_hours, assignee:users(name, email)"
+      "id, title, status, priority, due_at, estimate_hours, assignee:users!tasks_assignee_id_fkey(name, email)"
     )
     .eq("milestone_id", milestoneId)
     .order("created_at", { ascending: true });
@@ -74,59 +75,54 @@ export default async function MilestoneDetailPage({
   const status = MILESTONE_STATUS[milestone.status];
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Link href="/dashboard/projects" className="hover:underline">
-          Projects
-        </Link>
-        <span>/</span>
-        <Link
-          href={`/dashboard/projects/${projectId}`}
-          className="hover:underline"
-        >
-          {milestone.project?.name ?? "Project"}
-        </Link>
-        <span>/</span>
-        <span>Milestone</span>
-      </div>
-
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-muted-foreground">
-              #{milestone.sequence}
-            </span>
-            <h1 className="font-heading text-2xl font-medium">
-              {milestone.name}
-            </h1>
-            <Badge variant={status.variant} className={status.className}>
-              {status.label}
-            </Badge>
-          </div>
-          <p className="text-sm text-muted-foreground">
+    <Page>
+      <PageHeader
+        breadcrumbs={[
+          { label: "Dashboard", href: "/dashboard" },
+          { label: "Projects", href: "/dashboard/projects" },
+          {
+            label: milestone.project?.name ?? "Project",
+            href: `/dashboard/projects/${projectId}`,
+          },
+          { label: `#${milestone.sequence} ${milestone.name}` },
+        ]}
+        title={milestone.name}
+        description={
+          <>
             Target: {formatDate(milestone.target_date)}
             {milestone.completed_at
               ? ` · Completed ${formatDate(milestone.completed_at)}`
               : ""}
-          </p>
-          {milestone.description ? (
-            <p className="mt-1 max-w-2xl text-sm text-foreground/90">
-              {milestone.description}
-            </p>
-          ) : null}
-        </div>
-        <Button
-          render={
-            <Link
-              href={`/dashboard/projects/${projectId}/milestones/${milestoneId}/tasks/new`}
-            />
-          }
-        >
-          Add task
-        </Button>
-      </div>
+          </>
+        }
+        meta={
+          <>
+            <span className="text-sm text-muted-foreground">
+              #{milestone.sequence}
+            </span>
+            <Badge variant={status.variant} className={status.className}>
+              {status.label}
+            </Badge>
+          </>
+        }
+        action={
+          <Button
+            render={
+              <Link
+                href={`/dashboard/projects/${projectId}/milestones/${milestoneId}/tasks/new`}
+              />
+            }
+          >
+            Add task
+          </Button>
+        }
+      />
 
-      <Separator />
+      {milestone.description ? (
+        <p className="max-w-2xl text-sm text-foreground/90">
+          {milestone.description}
+        </p>
+      ) : null}
 
       <Card>
         <CardHeader>
@@ -141,10 +137,10 @@ export default async function MilestoneDetailPage({
               {tasks.map((task) => {
                 const taskStatus = TASK_STATUS[task.status];
                 const taskPriority = TASK_PRIORITY[task.priority];
-                const assigneeDisplay =
-                  task.assignee?.name ??
-                  task.assignee?.email ??
-                  "Unassigned";
+                const assigneeDisplay = userDisplay(
+                  task.assignee,
+                  "Unassigned"
+                );
                 return (
                   <li
                     key={task.id}
@@ -192,6 +188,6 @@ export default async function MilestoneDetailPage({
         entityId={milestone.id}
         revalidatePath={`/dashboard/projects/${projectId}/milestones/${milestoneId}`}
       />
-    </div>
+    </Page>
   );
 }

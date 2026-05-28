@@ -1,15 +1,9 @@
 import { notFound } from "next/navigation";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Page, PageHeader } from "@/components/page-shell";
+import { NewTaskForm } from "@/components/tasks/new-task-form";
+import { Card, CardContent } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
-
-import { NewTaskForm } from "./new-task-form";
 
 export default async function NewTaskPage({
   params,
@@ -39,31 +33,45 @@ export default async function NewTaskPage({
     .order("name", { ascending: true });
 
   return (
-    <div className="flex justify-center">
-      <Card className="w-full max-w-[560px]">
-        <CardHeader>
-          <CardTitle className="text-base">New task</CardTitle>
-          <CardDescription>
+    <Page>
+      <PageHeader
+        breadcrumbs={[
+          { label: "Dashboard", href: "/dashboard" },
+          { label: "Projects", href: "/dashboard/projects" },
+          {
+            label: milestone.project?.name ?? "Project",
+            href: `/dashboard/projects/${id}`,
+          },
+          {
+            label: milestone.name,
+            href: `/dashboard/projects/${id}/milestones/${milestoneId}`,
+          },
+          { label: "New task" },
+        ]}
+        title="New task"
+        description={
+          <>
             Under milestone{" "}
             <span className="font-medium">{milestone.name}</span>
             {milestone.project?.name ? (
               <>
-                {" "}· in <span className="font-medium">
-                  {milestone.project.name}
-                </span>
+                {" "}· in{" "}
+                <span className="font-medium">{milestone.project.name}</span>
               </>
             ) : null}
             .
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+          </>
+        }
+      />
+      <Card className="w-full max-w-[640px]">
+        <CardContent className="pt-6">
           <NewTaskForm
-            projectId={id}
-            milestoneId={milestoneId}
+            context={{ kind: "milestone", projectId: id, milestoneId }}
             assignees={assignees ?? []}
+            cancelHref={`/dashboard/projects/${id}`}
           />
         </CardContent>
       </Card>
-    </div>
+    </Page>
   );
 }

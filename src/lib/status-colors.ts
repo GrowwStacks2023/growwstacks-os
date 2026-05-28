@@ -18,9 +18,15 @@ type StatusVisual = {
 
 // Tailwind palettes used for finer-grained colour than the 6 built-in variants
 // offer. Kept here (not in badge.tsx) so the badge primitive stays stack-agnostic.
+//
+// Neutral "slate" and "zinc" badges were cold greys against the new warm
+// background; swapped to "stone" (warm grey) so neutral status reads as
+// part of the same palette family. Other hues are semantic — green for
+// done/received, amber for in-flight/expected, red for blocked/lost — and
+// stay as-is for unambiguous meaning.
 const COLOR = {
   slate:
-    "bg-slate-100 text-slate-700 dark:bg-slate-500/20 dark:text-slate-200",
+    "bg-stone-100 text-stone-700 dark:bg-stone-500/20 dark:text-stone-200",
   blue: "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-200",
   indigo:
     "bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-200",
@@ -31,7 +37,7 @@ const COLOR = {
   red: "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-200",
   purple:
     "bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-200",
-  zinc: "bg-zinc-100 text-zinc-700 dark:bg-zinc-500/20 dark:text-zinc-200",
+  zinc: "bg-stone-100 text-stone-600 dark:bg-stone-500/15 dark:text-stone-300",
 } as const;
 
 export const PROJECT_STATUS: Record<ProjectStatus, StatusVisual> = {
@@ -130,3 +136,35 @@ export const DEAL_STAGE_OPTIONS = DEAL_STAGE_ORDER.map((value) => ({
 export const DEAL_SOURCE_OPTIONS = Object.entries(DEAL_SOURCE).map(
   ([value, v]) => ({ value: value as DealSource, label: v.label })
 );
+
+// Payments — kind/status come from CHECK constraints in 0012_payments.sql,
+// not Postgres enums (currency list will grow when GBP/AED engagements land
+// and we don't want a migration for that). Keep the unions in sync with
+// the migration if either list changes.
+export type PaymentKind = "advance" | "installment" | "final" | "other";
+export type PaymentStatus = "expected" | "received" | "refunded";
+
+export const PAYMENT_KIND: Record<PaymentKind, StatusVisual> = {
+  advance: { variant: "outline", className: COLOR.indigo, label: "Advance" },
+  installment: {
+    variant: "outline",
+    className: COLOR.blue,
+    label: "Installment",
+  },
+  final: { variant: "outline", className: COLOR.green, label: "Final" },
+  other: { variant: "outline", className: COLOR.zinc, label: "Other" },
+};
+
+export const PAYMENT_STATUS: Record<PaymentStatus, StatusVisual> = {
+  expected: { variant: "outline", className: COLOR.amber, label: "Expected" },
+  received: { variant: "outline", className: COLOR.green, label: "Received" },
+  refunded: { variant: "outline", className: COLOR.red, label: "Refunded" },
+};
+
+export const PAYMENT_KIND_OPTIONS = (
+  Object.entries(PAYMENT_KIND) as [PaymentKind, StatusVisual][]
+).map(([value, v]) => ({ value, label: v.label }));
+
+export const PAYMENT_STATUS_OPTIONS = (
+  Object.entries(PAYMENT_STATUS) as [PaymentStatus, StatusVisual][]
+).map(([value, v]) => ({ value, label: v.label }));

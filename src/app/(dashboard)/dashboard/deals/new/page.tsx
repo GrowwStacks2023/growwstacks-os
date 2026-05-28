@@ -1,13 +1,8 @@
 import Link from "next/link";
 
+import { Page, PageHeader } from "@/components/page-shell";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 
 import { NewDealForm } from "./new-deal-form";
@@ -39,15 +34,18 @@ export default async function NewDealPage() {
   const hasCompanies = (companies?.length ?? 0) > 0;
 
   return (
-    <div className="flex justify-center">
-      <Card className="w-full max-w-[560px]">
-        <CardHeader>
-          <CardTitle className="text-base">New deal</CardTitle>
-          <CardDescription>
-            Log an opportunity in the sales pipeline.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+    <Page>
+      <PageHeader
+        breadcrumbs={[
+          { label: "Dashboard", href: "/dashboard" },
+          { label: "Deals", href: "/dashboard/deals" },
+          { label: "New deal" },
+        ]}
+        title="New deal"
+        description="Log an opportunity in the sales pipeline."
+      />
+      <Card className="w-full max-w-[640px]">
+        <CardContent className="pt-6">
           {hasCompanies ? (
             <NewDealForm
               companies={companies ?? []}
@@ -72,6 +70,6 @@ export default async function NewDealPage() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </Page>
   );
 }

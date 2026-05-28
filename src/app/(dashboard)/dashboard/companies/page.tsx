@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { Page, PageHeader } from "@/components/page-shell";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,18 +34,20 @@ export default async function CompaniesPage() {
     .order("created_at", { ascending: false });
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-heading text-xl font-medium">Companies</h1>
-          <p className="text-sm text-muted-foreground">
-            Clients, prospects, and partners.
-          </p>
-        </div>
-        <Button render={<Link href="/dashboard/companies/new" />}>
-          New company
-        </Button>
-      </div>
+    <Page>
+      <PageHeader
+        breadcrumbs={[
+          { label: "Dashboard", href: "/dashboard" },
+          { label: "Companies" },
+        ]}
+        title="Companies"
+        description="Clients, prospects, and partners."
+        action={
+          <Button render={<Link href="/dashboard/companies/new" />}>
+            New company
+          </Button>
+        }
+      />
 
       {error ? (
         <Alert variant="destructive">
@@ -107,6 +110,6 @@ export default async function CompaniesPage() {
           </CardContent>
         )}
       </Card>
-    </div>
+    </Page>
   );
 }

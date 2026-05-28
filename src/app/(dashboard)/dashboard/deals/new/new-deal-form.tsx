@@ -9,10 +9,10 @@ import {
   StagedAttachments,
   type StagedItem,
 } from "@/components/attachments/staged";
+import { Field, FormActions, FormRow, FormSection } from "@/components/form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { userDisplay } from "@/lib/display";
 import { DEAL_SOURCE_OPTIONS, DEAL_STAGE_OPTIONS } from "@/lib/status-colors";
 
 import { createDealDirect } from "./actions";
@@ -165,159 +166,168 @@ export function NewDealForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="company_id">Company</Label>
-        <Select value={companyId} onValueChange={(v) => setCompanyId(v ?? "")} disabled={pending}>
-          <SelectTrigger id="company_id" className="w-full">
-            <SelectValue placeholder="Select a company" />
-          </SelectTrigger>
-          <SelectContent>
-            {companies.map((company) => (
-              <SelectItem key={company.id} value={company.id}>
-                {company.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="title">Title</Label>
-        <Input
-          id="title"
-          type="text"
-          autoComplete="off"
-          required
-          disabled={pending}
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
-      </div>
-
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="description">Description</Label>
-        <Textarea
-          id="description"
-          rows={3}
-          disabled={pending}
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="stage">Stage</Label>
-          <Select value={stage} onValueChange={(v) => setStage(v ?? "new")} disabled={pending}>
-            <SelectTrigger id="stage" className="w-full">
-              <SelectValue />
+    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+      <FormSection>
+        <Field id="company_id" label="Company" required>
+          <Select
+            value={companyId}
+            onValueChange={(v) => setCompanyId(v ?? "")}
+            disabled={pending}
+          >
+            <SelectTrigger id="company_id" className="w-full">
+              <SelectValue placeholder="Select a company" />
             </SelectTrigger>
             <SelectContent>
-              {DEAL_STAGE_OPTIONS.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label}
+              {companies.map((company) => (
+                <SelectItem key={company.id} value={company.id}>
+                  {company.name}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-        </div>
+        </Field>
 
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="source">Source</Label>
-          <Select value={source} onValueChange={(v) => setSource(v ?? "other")} disabled={pending}>
-            <SelectTrigger id="source" className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {DEAL_SOURCE_OPTIONS.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="value_inr">Value (INR)</Label>
+        <Field id="title" label="Title" required>
           <Input
-            id="value_inr"
-            type="number"
-            inputMode="decimal"
-            min="0"
-            step="0.01"
+            id="title"
+            type="text"
+            autoComplete="off"
+            required
             disabled={pending}
-            value={valueInr}
-            onChange={(e) => setValueInr(e.target.value)}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
           />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="value_usd">Value (USD)</Label>
-          <Input
-            id="value_usd"
-            type="number"
-            inputMode="decimal"
-            min="0"
-            step="0.01"
+        </Field>
+
+        <Field id="description" label="Description" optional>
+          <Textarea
+            id="description"
+            rows={3}
             disabled={pending}
-            value={valueUsd}
-            onChange={(e) => setValueUsd(e.target.value)}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
           />
-        </div>
-      </div>
+        </Field>
 
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="owner_id">Owner</Label>
-        <Select
-          value={ownerId}
-          onValueChange={(v) => setOwnerId(v ?? UNASSIGNED)}
-          disabled={pending || owners.length === 0}
-        >
-          <SelectTrigger id="owner_id" className="w-full">
-            <SelectValue
-              placeholder={
-                owners.length === 0 ? "No owners available" : "Unassigned"
-              }
-            />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={UNASSIGNED}>— Unassigned —</SelectItem>
-            {owners.map((u) => (
-              <SelectItem key={u.id} value={u.id}>
-                {u.name ?? u.email}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+        <FormRow>
+          <Field id="stage" label="Stage">
+            <Select
+              value={stage}
+              onValueChange={(v) => setStage(v ?? "new")}
+              disabled={pending}
+            >
+              <SelectTrigger id="stage" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {DEAL_STAGE_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field id="source" label="Source">
+            <Select
+              value={source}
+              onValueChange={(v) => setSource(v ?? "other")}
+              disabled={pending}
+            >
+              <SelectTrigger id="source" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {DEAL_SOURCE_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+        </FormRow>
 
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="contact_id">Contact</Label>
-        <Select
-          value={contactId}
-          onValueChange={(v) => setContactId(v ?? NO_CONTACT)}
-          disabled={pending || contacts.length === 0}
-        >
-          <SelectTrigger id="contact_id" className="w-full">
-            <SelectValue
-              placeholder={
-                contacts.length === 0 ? "No contacts available" : "Optional"
-              }
+        <FormRow>
+          <Field id="value_inr" label="Value (INR)" optional>
+            <Input
+              id="value_inr"
+              type="number"
+              inputMode="decimal"
+              min="0"
+              step="0.01"
+              disabled={pending}
+              value={valueInr}
+              onChange={(e) => setValueInr(e.target.value)}
             />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={NO_CONTACT}>— None —</SelectItem>
-            {contacts.map((c) => (
-              <SelectItem key={c.id} value={c.id}>
-                {c.companyName ? `${c.name} (${c.companyName})` : c.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+          </Field>
+          <Field id="value_usd" label="Value (USD)" optional>
+            <Input
+              id="value_usd"
+              type="number"
+              inputMode="decimal"
+              min="0"
+              step="0.01"
+              disabled={pending}
+              value={valueUsd}
+              onChange={(e) => setValueUsd(e.target.value)}
+            />
+          </Field>
+        </FormRow>
+
+        <FormRow>
+          <Field id="owner_id" label="Owner" optional>
+            <Select
+              value={ownerId}
+              onValueChange={(v) => setOwnerId(v ?? UNASSIGNED)}
+              disabled={pending || owners.length === 0}
+            >
+              <SelectTrigger id="owner_id" className="w-full">
+                <SelectValue
+                  placeholder={
+                    owners.length === 0
+                      ? "No owners available"
+                      : "Unassigned"
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={UNASSIGNED}>— Unassigned —</SelectItem>
+                {owners.map((u) => (
+                  <SelectItem key={u.id} value={u.id}>
+                    {userDisplay(u)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field id="contact_id" label="Contact" optional>
+            <Select
+              value={contactId}
+              onValueChange={(v) => setContactId(v ?? NO_CONTACT)}
+              disabled={pending || contacts.length === 0}
+            >
+              <SelectTrigger id="contact_id" className="w-full">
+                <SelectValue
+                  placeholder={
+                    contacts.length === 0
+                      ? "No contacts available"
+                      : "None"
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NO_CONTACT}>— None —</SelectItem>
+                {contacts.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.companyName ? `${c.name} (${c.companyName})` : c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+        </FormRow>
+      </FormSection>
 
       <StagedAttachments
         items={staged}
@@ -331,7 +341,7 @@ export function NewDealForm({
         </Alert>
       ) : null}
 
-      <div className="mt-2 flex items-center justify-end gap-2">
+      <FormActions>
         <Button
           type="button"
           variant="outline"
@@ -343,7 +353,7 @@ export function NewDealForm({
         <Button type="submit" disabled={pending}>
           {pending ? "Creating…" : "Create deal"}
         </Button>
-      </div>
+      </FormActions>
     </form>
   );
 }

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { AttachmentsCard } from "@/components/attachments";
+import { Page, PageHeader } from "@/components/page-shell";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -11,7 +12,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { createClient } from "@/lib/supabase/server";
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
@@ -57,33 +57,21 @@ export default async function CompanyDetailPage({
     .order("created_at", { ascending: true });
 
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <Link
-          href="/dashboard/companies"
-          className="text-sm text-muted-foreground hover:underline"
-        >
-          ← Companies
-        </Link>
-      </div>
-
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-3">
-          <h1 className="font-heading text-2xl font-medium">{company.name}</h1>
+    <Page>
+      <PageHeader
+        breadcrumbs={[
+          { label: "Dashboard", href: "/dashboard" },
+          { label: "Companies", href: "/dashboard/companies" },
+          { label: company.name },
+        ]}
+        title={company.name}
+        description={`Timezone: ${company.timezone} · Hours: ${company.business_hours_start}–${company.business_hours_end} · Created ${dateFormatter.format(new Date(company.created_at))}`}
+        meta={
           <Badge variant="outline" className="capitalize">
             {company.type}
           </Badge>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          Timezone: {company.timezone} · Hours: {company.business_hours_start}–
-          {company.business_hours_end}
-        </p>
-        <p className="text-xs text-muted-foreground">
-          Created {dateFormatter.format(new Date(company.created_at))}
-        </p>
-      </div>
-
-      <Separator />
+        }
+      />
 
       <Card>
         <CardHeader>
@@ -129,6 +117,6 @@ export default async function CompanyDetailPage({
         entityId={company.id}
         revalidatePath={`/dashboard/companies/${company.id}`}
       />
-    </div>
+    </Page>
   );
 }

@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { Page, PageHeader } from "@/components/page-shell";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -30,18 +31,20 @@ export default async function ContactsPage() {
     .order("created_at", { ascending: false });
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-heading text-xl font-medium">Contacts</h1>
-          <p className="text-sm text-muted-foreground">
-            People you work with — at companies or standalone.
-          </p>
-        </div>
-        <Button render={<Link href="/dashboard/contacts/new" />}>
-          New contact
-        </Button>
-      </div>
+    <Page>
+      <PageHeader
+        breadcrumbs={[
+          { label: "Dashboard", href: "/dashboard" },
+          { label: "Contacts" },
+        ]}
+        title="Contacts"
+        description="People you work with — at companies or standalone."
+        action={
+          <Button render={<Link href="/dashboard/contacts/new" />}>
+            New contact
+          </Button>
+        }
+      />
 
       {error ? (
         <Alert variant="destructive">
@@ -114,6 +117,6 @@ export default async function ContactsPage() {
           </CardContent>
         )}
       </Card>
-    </div>
+    </Page>
   );
 }

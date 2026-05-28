@@ -7,16 +7,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { createClient } from "@/lib/supabase/client";
+import { userDisplay } from "@/lib/display";
 
 import {
   deleteAttachment,
-  recordFileAttachment,
   recordLinkAttachment,
+  uploadAndRecordFile,
 } from "./actions";
 import type { AttachmentEntityType } from "./actions";
 import type { AttachmentRow } from "./fetch";
-import { sanitizeFileName, storagePathFor } from "./storage";
 
 type Props = {
   entityType: AttachmentEntityType;
@@ -73,44 +72,23 @@ export function AttachmentsPanel({
 
     setWorking(true);
 
-    const storagePath = storagePathFor(entityType, entityId, file.name);
+    // Hand the file to the server action via FormData. The action posts
+    // it to the n8n webhook, parses the Drive link out of the response,
+    // and inserts the attachment row. NO bytes hit Supabase Storage
+    // anymore — the bucket is dormant for new uploads.
+    const fd = new FormData();
+    fd.append("file", file, file.name);
+    fd.append("entityType", entityType);
+    fd.append("entityId", entityId);
+    if (fileLabel.trim()) fd.append("label", fileLabel.trim());
+    fd.append("revalidate", revalidate);
 
-    const supabase = createClient();
-    const { error: uploadError } = await supabase.storage
-      .from("attachments")
-      .upload(storagePath, file, {
-        contentType: file.type || undefined,
-        upsert: false,
-      });
-
-    if (uploadError) {
-      setWorking(false);
-      setError(`Upload failed: ${uploadError.message}`);
-      return;
-    }
-
-    const {
-      data: { publicUrl },
-    } = supabase.storage.from("attachments").getPublicUrl(storagePath);
-
-    const result = await recordFileAttachment({
-      entityType,
-      entityId,
-      fileName: file.name,
-      storagePath,
-      publicUrl,
-      mimeType: file.type || null,
-      sizeBytes: file.size,
-      label: fileLabel.trim() ? fileLabel.trim() : null,
-      revalidate,
-    });
-
+    const result = await uploadAndRecordFile(fd);
     setWorking(false);
 
     if (!result.ok) {
-      // Metadata row failed — drop the orphan storage file so the UI doesn't
-      // lie about what exists.
-      await supabase.storage.from("attachments").remove([storagePath]);
+      // Webhook failure / DB rejection: no row was inserted. Surface the
+      // server message so the user can decide whether to retry.
       setError(result.error);
       return;
     }
@@ -251,11 +229,13 @@ export function AttachmentsPanel({
       ) : (
         <ul className="divide-y rounded-md border">
           {attachments.map((a) => {
-            const uploaderDisplay =
-              a.uploader?.name ?? a.uploader?.email ?? "Unknown";
+            const uploaderDisplay = userDisplay(a.uploader, "Unknown");
             const canDelete = isAdmin || a.uploaded_by === currentUserId;
             const isLink = a.kind === "link";
-            const href = isLink ? a.url : a.public_url;
+            // Open: links always live in `url`; files prefer the new
+            // Drive `url` when present, falling back to the legacy
+            // bucket `public_url` so old rows still open.
+            const href = a.url ?? a.public_url ?? null;
             const titleText = a.label ?? a.file_name;
             // For links without a label, file_name was set to the URL itself
             // (see recordLinkAttachment); skip the secondary line in that
@@ -342,7 +322,3 @@ export function AttachmentsPanel({
     </div>
   );
 }
-
-// Re-export helpers so detail pages / create forms can share the same path
-// generation rules.
-export { sanitizeFileName, storagePathFor };

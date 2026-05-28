@@ -9,6 +9,12 @@ import {
   StagedAttachments,
   type StagedItem,
 } from "@/components/attachments/staged";
+import {
+  Field,
+  FormActions,
+  FormRow,
+  FormSection,
+} from "@/components/form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -142,103 +148,102 @@ export function NewContactForm({ companies }: { companies: CompanyOption[] }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="name">Name</Label>
-        <Input
-          id="name"
-          name="name"
-          type="text"
-          autoComplete="off"
-          required
-          disabled={pending}
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-      </div>
-
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="company_id">Company (optional)</Label>
-        <Select
-          value={companyId}
-          onValueChange={(v) => setCompanyId(v ?? NO_COMPANY)}
-          disabled={pending}
-        >
-          <SelectTrigger id="company_id" className="w-full">
-            <SelectValue placeholder="No company" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={NO_COMPANY}>— None —</SelectItem>
-            {companies.map((company) => (
-              <SelectItem key={company.id} value={company.id}>
-                {company.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="email">Email</Label>
-        <Input
-          id="email"
-          type="email"
-          autoComplete="off"
-          disabled={pending}
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="phone">Phone</Label>
+    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+      <FormSection>
+        <Field id="name" label="Name" required>
           <Input
-            id="phone"
-            type="tel"
+            id="name"
+            name="name"
+            type="text"
+            autoComplete="off"
+            required
+            disabled={pending}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </Field>
+
+        <Field id="company_id" label="Company" optional>
+          <Select
+            value={companyId}
+            onValueChange={(v) => setCompanyId(v ?? NO_COMPANY)}
+            disabled={pending}
+          >
+            <SelectTrigger id="company_id" className="w-full">
+              <SelectValue placeholder="No company" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NO_COMPANY}>— None —</SelectItem>
+              {companies.map((company) => (
+                <SelectItem key={company.id} value={company.id}>
+                  {company.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
+
+        <Field id="email" label="Email">
+          <Input
+            id="email"
+            type="email"
             autoComplete="off"
             disabled={pending}
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
           />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="whatsapp">WhatsApp</Label>
+        </Field>
+
+        <FormRow>
+          <Field id="phone" label="Phone">
+            <Input
+              id="phone"
+              type="tel"
+              autoComplete="off"
+              disabled={pending}
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+            />
+          </Field>
+          <Field id="whatsapp" label="WhatsApp">
+            <Input
+              id="whatsapp"
+              type="tel"
+              autoComplete="off"
+              disabled={pending}
+              value={whatsapp}
+              onChange={(e) => setWhatsapp(e.target.value)}
+            />
+          </Field>
+        </FormRow>
+
+        <Field id="role" label="Role">
           <Input
-            id="whatsapp"
-            type="tel"
+            id="role"
+            type="text"
+            placeholder="e.g. Head of Marketing"
             autoComplete="off"
             disabled={pending}
-            value={whatsapp}
-            onChange={(e) => setWhatsapp(e.target.value)}
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
           />
+        </Field>
+
+        <div className="flex items-center gap-2 pt-1">
+          <Checkbox
+            id="is_primary"
+            checked={isPrimary}
+            onCheckedChange={(v) => setIsPrimary(v === true)}
+            disabled={pending}
+          />
+          <Label
+            htmlFor="is_primary"
+            className="text-[13px] font-normal text-foreground/80"
+          >
+            Primary contact (when a company is set)
+          </Label>
         </div>
-      </div>
-
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="role">Role</Label>
-        <Input
-          id="role"
-          type="text"
-          placeholder="e.g. Head of Marketing"
-          autoComplete="off"
-          disabled={pending}
-          value={role}
-          onChange={(e) => setRole(e.target.value)}
-        />
-      </div>
-
-      <div className="flex items-center gap-2">
-        <Checkbox
-          id="is_primary"
-          checked={isPrimary}
-          onCheckedChange={(v) => setIsPrimary(v === true)}
-          disabled={pending}
-        />
-        <Label htmlFor="is_primary" className="font-normal">
-          Primary contact (when a company is set)
-        </Label>
-      </div>
+      </FormSection>
 
       <StagedAttachments
         items={staged}
@@ -252,7 +257,7 @@ export function NewContactForm({ companies }: { companies: CompanyOption[] }) {
         </Alert>
       ) : null}
 
-      <div className="mt-2 flex items-center justify-end gap-2">
+      <FormActions>
         <Button
           type="button"
           variant="outline"
@@ -264,7 +269,7 @@ export function NewContactForm({ companies }: { companies: CompanyOption[] }) {
         <Button type="submit" disabled={pending}>
           {pending ? "Creating…" : "Create contact"}
         </Button>
-      </div>
+      </FormActions>
     </form>
   );
 }

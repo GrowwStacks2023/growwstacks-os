@@ -4,41 +4,78 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ═══════════════════════════════════════════════════════════════════════
+   GrowwStacks OS — Visual Identity
+   ───────────────────────────────────────────────────────────────────────
+   Direction:  editorial-craft. Refined serif headings (Fraunces) over a
+               disciplined grotesque body (Geist). Warm sienna accent.
+               Paper-warm surfaces, not cold slate. Color punctuates;
+               whitespace carries the rhythm.
+   Anti-goal:  default-shadcn / generic-AI-dashboard.
+   See DESIGN.md for the full token reference.
+   ═══════════════════════════════════════════════════════════════════════ */
+
 @theme inline {
+  /* ── Type ─────────────────────────────────────────────────────────── */
+  --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-mono), ui-monospace, monospace;
+  /* font-display is bound to Fraunces; use `font-display` Tailwind utility
+     for editorial headings, h1/h2 page titles, the brand wordmark. */
+  --font-display: var(--font-display), Georgia, serif;
+  /* Backwards-compat alias used by older components. Maps to the new
+     editorial display so any lingering `font-heading` references pick
+     up Fraunces, not the body sans. */
+  --font-heading: var(--font-display), Georgia, serif;
+
+  /* ── Colors (shadcn-compatible aliases) ──────────────────────────── */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* ── Sienna ramp (named utilities: bg-sienna-500, text-sienna-700) ── */
+  --color-sienna-50: var(--sienna-50);
+  --color-sienna-100: var(--sienna-100);
+  --color-sienna-200: var(--sienna-200);
+  --color-sienna-300: var(--sienna-300);
+  --color-sienna-400: var(--sienna-400);
+  --color-sienna-500: var(--sienna-500);
+  --color-sienna-600: var(--sienna-600);
+  --color-sienna-700: var(--sienna-700);
+  --color-sienna-800: var(--sienna-800);
+  --color-sienna-900: var(--sienna-900);
+
+  /* ── Radius ladder ─────────────────────────────────────────────────
+     Anchored on --radius. Cards = --radius-lg. Buttons = --radius-md.
+     Pills/chips = --radius-2xl. We use a slightly larger anchor (10px)
+     than shadcn default to read as crafted, not crisp-corner generic. */
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -48,83 +85,230 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   Token values
+   ───────────────────────────────────────────────────────────────────────
+   PALETTE
+     Sienna ramp     terracotta / burnt-orange, oklch hue 28–45
+     Surfaces        warm cream (paper), warm near-black text
+     Borders         warm pale grey (low chroma, hue 55–60)
+     Destructive     punchier red (hue 22) so it doesn't smear into sienna
+     Status palette  green / amber / red kept SEMANTIC; never re-tinted
+
+   ACCENT USAGE — emphasis only (Refactoring UI rule)
+     · Primary buttons (sienna-600 bg, white label, ~5:1 contrast)
+     · Active sidebar link (sienna-50 tint + sienna-700 text + sienna-600 icon)
+     · Focus ring (sienna-500) so keyboard nav is unmistakable
+     · Brand mark in sidebar
+     · Big numbers on dashboard tiles
+     · Underline of editorial section-heading rules
+     Nothing else gets sienna by default.
+   ═══════════════════════════════════════════════════════════════════════ */
+
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.129 0.042 264.695);
+  /* Sienna ramp. 600 = resting primary; 500 = focus/accent; 50–200 = tints. */
+  --sienna-50:  oklch(0.972 0.014 45);
+  --sienna-100: oklch(0.940 0.032 42);
+  --sienna-200: oklch(0.875 0.068 40);
+  --sienna-300: oklch(0.785 0.115 38);
+  --sienna-400: oklch(0.675 0.155 36);
+  --sienna-500: oklch(0.605 0.170 34);
+  --sienna-600: oklch(0.525 0.165 33);
+  --sienna-700: oklch(0.445 0.145 32);
+  --sienna-800: oklch(0.365 0.115 30);
+  --sienna-900: oklch(0.290 0.082 28);
+
+  /* Warm-paper surfaces. The body bg is very slightly warmer than cards,
+     so cards "lift" off the page. */
+  --background: oklch(0.983 0.005 60);
+  --foreground: oklch(0.165 0.014 55);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.129 0.042 264.695);
+  --card-foreground: oklch(0.165 0.014 55);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.208 0.042 265.755);
-  --primary-foreground: oklch(0.984 0.003 247.858);
-  --secondary: oklch(0.968 0.007 247.896);
-  --secondary-foreground: oklch(0.208 0.042 265.755);
-  --muted: oklch(0.968 0.007 247.896);
-  --muted-foreground: oklch(0.554 0.046 257.417);
-  --accent: oklch(0.968 0.007 247.896);
-  --accent-foreground: oklch(0.208 0.042 265.755);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.929 0.013 255.508);
-  --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.704 0.04 256.788);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
+  --popover-foreground: oklch(0.165 0.014 55);
+
+  --primary: var(--sienna-600);
+  --primary-foreground: oklch(0.985 0.005 60);
+
+  --secondary: oklch(0.958 0.010 60);
+  --secondary-foreground: oklch(0.220 0.014 50);
+  --muted: oklch(0.958 0.010 60);
+  --muted-foreground: oklch(0.475 0.015 55);
+  --accent: oklch(0.952 0.014 55);
+  --accent-foreground: oklch(0.220 0.014 50);
+
+  --destructive: oklch(0.585 0.235 22);
+
+  --border: oklch(0.905 0.012 55);
+  --input: oklch(0.905 0.012 55);
+  --ring: var(--sienna-500);
+
+  --chart-1: var(--sienna-500);
+  --chart-2: oklch(0.760 0.130 78);
+  --chart-3: oklch(0.620 0.105 145);
+  --chart-4: oklch(0.660 0.095 235);
+  --chart-5: oklch(0.580 0.140 310);
+
+  /* Radius — 10px anchor reads as crafted, slightly larger than the
+     6–8px shadcn default. Cards 10px, buttons 8px, inputs 8px. */
   --radius: 0.625rem;
-  --sidebar: oklch(0.984 0.003 247.858);
-  --sidebar-foreground: oklch(0.129 0.042 264.695);
-  --sidebar-primary: oklch(0.208 0.042 265.755);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.968 0.007 247.896);
-  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
-  --sidebar-border: oklch(0.929 0.013 255.508);
-  --sidebar-ring: oklch(0.704 0.04 256.788);
+
+  /* Sidebar surface — a hair warmer + darker than --background so the
+     edge between sidebar and page is visible without a hard line. */
+  --sidebar: oklch(0.972 0.007 58);
+  --sidebar-foreground: oklch(0.210 0.014 50);
+  --sidebar-primary: var(--sienna-600);
+  --sidebar-primary-foreground: oklch(0.985 0.005 60);
+  --sidebar-accent: var(--sienna-50);
+  --sidebar-accent-foreground: var(--sienna-800);
+  --sidebar-border: oklch(0.910 0.012 55);
+  --sidebar-ring: var(--sienna-500);
 }
 
 .dark {
-  --background: oklch(0.129 0.042 264.695);
-  --foreground: oklch(0.984 0.003 247.858);
-  --card: oklch(0.208 0.042 265.755);
-  --card-foreground: oklch(0.984 0.003 247.858);
-  --popover: oklch(0.208 0.042 265.755);
-  --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.929 0.013 255.508);
-  --primary-foreground: oklch(0.208 0.042 265.755);
-  --secondary: oklch(0.279 0.041 260.031);
-  --secondary-foreground: oklch(0.984 0.003 247.858);
-  --muted: oklch(0.279 0.041 260.031);
-  --muted-foreground: oklch(0.704 0.04 256.788);
-  --accent: oklch(0.279 0.041 260.031);
-  --accent-foreground: oklch(0.984 0.003 247.858);
-  --destructive: oklch(0.704 0.191 22.216);
+  --sienna-50: oklch(0.235 0.045 32);
+  --sienna-100: oklch(0.290 0.065 33);
+  --sienna-200: oklch(0.350 0.090 34);
+  --sienna-300: oklch(0.420 0.115 34);
+  --sienna-400: oklch(0.510 0.145 33);
+  --sienna-500: oklch(0.610 0.165 33);
+  --sienna-600: oklch(0.685 0.160 33);
+  --sienna-700: oklch(0.760 0.140 34);
+  --sienna-800: oklch(0.840 0.110 36);
+  --sienna-900: oklch(0.910 0.075 40);
+
+  --background: oklch(0.165 0.015 50);
+  --foreground: oklch(0.960 0.010 55);
+  --card: oklch(0.215 0.015 50);
+  --card-foreground: oklch(0.960 0.010 55);
+  --popover: oklch(0.215 0.015 50);
+  --popover-foreground: oklch(0.960 0.010 55);
+
+  --primary: var(--sienna-500);
+  --primary-foreground: oklch(0.180 0.012 50);
+
+  --secondary: oklch(0.265 0.014 50);
+  --secondary-foreground: oklch(0.960 0.010 55);
+  --muted: oklch(0.265 0.014 50);
+  --muted-foreground: oklch(0.730 0.012 55);
+  --accent: oklch(0.290 0.022 50);
+  --accent-foreground: oklch(0.960 0.010 55);
+
+  --destructive: oklch(0.700 0.190 22);
+
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 264.364);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.208 0.042 265.755);
-  --sidebar-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.279 0.041 260.031);
-  --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
+  --ring: var(--sienna-400);
+
+  --chart-1: var(--sienna-400);
+  --chart-2: oklch(0.770 0.140 78);
+  --chart-3: oklch(0.620 0.115 145);
+  --chart-4: oklch(0.680 0.105 235);
+  --chart-5: oklch(0.620 0.150 310);
+
+  --sidebar: oklch(0.205 0.014 50);
+  --sidebar-foreground: oklch(0.960 0.010 55);
+  --sidebar-primary: var(--sienna-500);
+  --sidebar-primary-foreground: oklch(0.180 0.012 50);
+  --sidebar-accent: oklch(0.310 0.045 33);
+  --sidebar-accent-foreground: oklch(0.960 0.010 55);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.551 0.027 264.364);
+  --sidebar-ring: var(--sienna-400);
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Base layer + type scale
+   ═══════════════════════════════════════════════════════════════════════ */
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
+    /* Body copy size — 15px is a deliberate notch up from the 14px shadcn
+       default; reads better in dense screens (CRM tables, forms) and
+       gives the type more presence. */
+    font-size: 15px;
+    line-height: 1.55;
+    font-feature-settings: "cv11", "ss01", "ss03";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
-  html {
-    @apply font-sans;
+
+  /* Editorial headings — Fraunces. Slightly tightened tracking and a
+     touch heavier weight than the default 400 to give them presence
+     against the body grotesque. The opsz axis is tuned by font-size. */
+  h1, h2, h3, h4 {
+    @apply font-display text-foreground;
+    font-feature-settings: "ss01", "ss02";
+    letter-spacing: -0.012em;
+  }
+  h1 { font-weight: 500; line-height: 1.1;  font-variation-settings: "opsz" 36, "SOFT" 50; }
+  h2 { font-weight: 500; line-height: 1.15; font-variation-settings: "opsz" 24, "SOFT" 40; }
+  h3 { font-weight: 600; line-height: 1.25; font-variation-settings: "opsz" 18, "SOFT" 30; }
+  h4 { font-weight: 600; line-height: 1.3;  font-variation-settings: "opsz" 14, "SOFT" 20; }
+
+  /* Numbers in tabular contexts (amounts, totals) should align. Use
+     `font-mono` utility or this class for big numeric displays. */
+  .font-numeric {
+    font-family: var(--font-mono);
+    font-feature-settings: "tnum", "lnum";
+  }
+
+  /* Subtle textured warmth on the page surface — a very faint radial
+     gradient pinned top-right. Reads as paper, not a flat tile. Sits
+     under everything; pointer-events off. */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background:
+      radial-gradient(
+        1200px 800px at 100% 0%,
+        color-mix(in oklch, var(--sienna-100) 28%, transparent) 0%,
+        transparent 60%
+      );
+  }
+  /* Bring page content above the background sheen. */
+  body > * { position: relative; z-index: 1; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Component-level affordances
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@layer components {
+  /* Editorial section underline — a 2px sienna rule pinned under a
+     heading. Used by PageHeader title and Section title. Adds editorial
+     warmth without colour-flooding the heading text itself. */
+  .accent-rule {
+    @apply relative;
+  }
+  .accent-rule::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -10px;
+    width: 32px;
+    height: 2px;
+    background: var(--sienna-600);
+    border-radius: 999px;
+  }
+
+  /* Card override — slightly larger radius (10px ≈ --radius), one
+     hairline border, very subtle shadow that reads as lift not drop. */
+  [data-slot="card"] {
+    box-shadow: 0 1px 0 0 oklch(0.93 0.012 55 / 50%);
+  }
+
+  /* Input affordance — slightly larger touch target than default
+     shadcn, consistent height across all form fields. */
+  [data-slot="input"],
+  [data-slot="textarea"],
+  [data-slot="select-trigger"] {
+    background-color: var(--card);
   }
 }

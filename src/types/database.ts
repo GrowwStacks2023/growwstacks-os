@@ -569,11 +569,92 @@ export type Database = {
           },
         ]
       }
+      payments: {
+        Row: {
+          amount: number
+          company_id: string
+          created_at: string
+          currency: string
+          deal_id: string | null
+          id: string
+          kind: string
+          note: string | null
+          project_id: string | null
+          received_at: string | null
+          recorded_by: string | null
+          reference: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          company_id: string
+          created_at?: string
+          currency?: string
+          deal_id?: string | null
+          id?: string
+          kind?: string
+          note?: string | null
+          project_id?: string | null
+          received_at?: string | null
+          recorded_by?: string | null
+          reference?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          company_id?: string
+          created_at?: string
+          currency?: string
+          deal_id?: string | null
+          id?: string
+          kind?: string
+          note?: string | null
+          project_id?: string | null
+          received_at?: string | null
+          recorded_by?: string | null
+          reference?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_recorded_by_fkey"
+            columns: ["recorded_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           actual_end_at: string | null
           client_visible: boolean
           company_id: string
+          contact_id: string | null
           created_at: string
           deal_id: string | null
           description: string | null
@@ -589,6 +670,7 @@ export type Database = {
           actual_end_at?: string | null
           client_visible?: boolean
           company_id: string
+          contact_id?: string | null
           created_at?: string
           deal_id?: string | null
           description?: string | null
@@ -604,6 +686,7 @@ export type Database = {
           actual_end_at?: string | null
           client_visible?: boolean
           company_id?: string
+          contact_id?: string | null
           created_at?: string
           deal_id?: string | null
           description?: string | null
@@ -621,6 +704,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
             referencedColumns: ["id"]
           },
           {
@@ -730,14 +820,17 @@ export type Database = {
           assignee_id: string | null
           client_visible: boolean
           completed_at: string | null
+          contact_id: string | null
           created_at: string
+          deal_id: string | null
           description: string | null
           due_at: string | null
           estimate_hours: number | null
           id: string
-          milestone_id: string
+          milestone_id: string | null
+          pm_id: string | null
           priority: Database["public"]["Enums"]["task_priority"]
-          project_id: string
+          project_id: string | null
           status: Database["public"]["Enums"]["task_status"]
           title: string
           updated_at: string
@@ -747,14 +840,17 @@ export type Database = {
           assignee_id?: string | null
           client_visible?: boolean
           completed_at?: string | null
+          contact_id?: string | null
           created_at?: string
+          deal_id?: string | null
           description?: string | null
           due_at?: string | null
           estimate_hours?: number | null
           id?: string
-          milestone_id: string
+          milestone_id?: string | null
+          pm_id?: string | null
           priority?: Database["public"]["Enums"]["task_priority"]
-          project_id: string
+          project_id?: string | null
           status?: Database["public"]["Enums"]["task_status"]
           title: string
           updated_at?: string
@@ -764,14 +860,17 @@ export type Database = {
           assignee_id?: string | null
           client_visible?: boolean
           completed_at?: string | null
+          contact_id?: string | null
           created_at?: string
+          deal_id?: string | null
           description?: string | null
           due_at?: string | null
           estimate_hours?: number | null
           id?: string
-          milestone_id?: string
+          milestone_id?: string | null
+          pm_id?: string | null
           priority?: Database["public"]["Enums"]["task_priority"]
-          project_id?: string
+          project_id?: string | null
           status?: Database["public"]["Enums"]["task_status"]
           title?: string
           updated_at?: string
@@ -785,10 +884,31 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "tasks_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "tasks_milestone_id_fkey"
             columns: ["milestone_id"]
             isOneToOne: false
             referencedRelation: "milestones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_pm_id_fkey"
+            columns: ["pm_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
           {

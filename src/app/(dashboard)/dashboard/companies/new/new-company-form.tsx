@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { useActionState } from "react";
 
+import { Field, FormActions, FormRow } from "@/components/form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -26,9 +26,8 @@ export function NewCompanyForm() {
   );
 
   return (
-    <form action={formAction} className="flex flex-col gap-4">
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="name">Name</Label>
+    <form action={formAction} className="flex flex-col gap-5">
+      <Field id="name" label="Name" required>
         <Input
           id="name"
           name="name"
@@ -37,10 +36,9 @@ export function NewCompanyForm() {
           required
           disabled={pending}
         />
-      </div>
+      </Field>
 
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="type">Type</Label>
+      <Field id="type" label="Type">
         <Select name="type" defaultValue="prospect" disabled={pending}>
           <SelectTrigger id="type" className="w-full">
             <SelectValue />
@@ -51,10 +49,9 @@ export function NewCompanyForm() {
             <SelectItem value="partner">Partner</SelectItem>
           </SelectContent>
         </Select>
-      </div>
+      </Field>
 
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="timezone">Timezone</Label>
+      <Field id="timezone" label="Timezone">
         <Input
           id="timezone"
           name="timezone"
@@ -62,11 +59,10 @@ export function NewCompanyForm() {
           defaultValue="Asia/Kolkata"
           disabled={pending}
         />
-      </div>
+      </Field>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="business_hours_start">Hours start</Label>
+      <FormRow>
+        <Field id="business_hours_start" label="Hours start">
           <Input
             id="business_hours_start"
             name="business_hours_start"
@@ -74,9 +70,8 @@ export function NewCompanyForm() {
             defaultValue="09:00"
             disabled={pending}
           />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="business_hours_end">Hours end</Label>
+        </Field>
+        <Field id="business_hours_end" label="Hours end">
           <Input
             id="business_hours_end"
             name="business_hours_end"
@@ -84,8 +79,8 @@ export function NewCompanyForm() {
             defaultValue="19:00"
             disabled={pending}
           />
-        </div>
-      </div>
+        </Field>
+      </FormRow>
 
       {state.error ? (
         <Alert variant="destructive">
@@ -93,7 +88,7 @@ export function NewCompanyForm() {
         </Alert>
       ) : null}
 
-      <div className="mt-2 flex items-center justify-end gap-2">
+      <FormActions>
         <Button
           type="button"
           variant="outline"
@@ -105,7 +100,7 @@ export function NewCompanyForm() {
         <Button type="submit" disabled={pending}>
           {pending ? "Creating…" : "Create company"}
         </Button>
-      </div>
+      </FormActions>
     </form>
   );
 }

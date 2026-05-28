@@ -6,18 +6,19 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { createClient } from "@/lib/supabase/client";
 
 import {
-  recordFileAttachment,
   recordLinkAttachment,
+  uploadAndRecordFile,
   type AttachmentEntityType,
 } from "./actions";
-import { storagePathFor } from "./storage";
 
 // Local-only staged items: live in client state until the parent entity has
 // been created and we know its id. Then commitStagedAttachments() walks the
-// list and turns each item into a real Storage object + attachment row.
+// list and turns each item into an attachment row.
+//
+// Files now flow through the n8n webhook via the uploadAndRecordFile server
+// action; links insert a kind='link' row directly.
 export type StagedFile = {
   // Unique-within-this-session key for React's list reconciliation.
   key: string;
@@ -214,6 +215,9 @@ export function StagedAttachments({ items, onChange, disabled }: Props) {
 // without blocking the navigation. The entity is NEVER rolled back if an
 // attachment fails — losing a partially-attached entity would be worse than
 // surfacing a warning.
+//
+// Files are sent to the uploadAndRecordFile server action (which talks to
+// the n8n webhook); links go straight to recordLinkAttachment.
 export type CommitResult = {
   succeeded: number;
   failed: { item: StagedItem; reason: string }[];
@@ -227,37 +231,16 @@ export async function commitStagedAttachments(
   const failed: CommitResult["failed"] = [];
   let succeeded = 0;
 
-  const supabase = createClient();
-
   for (const item of items) {
     if (item.kind === "file") {
-      const storagePath = storagePathFor(entityType, entityId, item.file.name);
-      const { error: uploadError } = await supabase.storage
-        .from("attachments")
-        .upload(storagePath, item.file, {
-          contentType: item.file.type || undefined,
-          upsert: false,
-        });
-      if (uploadError) {
-        failed.push({ item, reason: uploadError.message });
-        continue;
-      }
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("attachments").getPublicUrl(storagePath);
+      const fd = new FormData();
+      fd.append("file", item.file, item.file.name);
+      fd.append("entityType", entityType);
+      fd.append("entityId", entityId);
+      if (item.label) fd.append("label", item.label);
 
-      const result = await recordFileAttachment({
-        entityType,
-        entityId,
-        fileName: item.file.name,
-        storagePath,
-        publicUrl,
-        mimeType: item.file.type || null,
-        sizeBytes: item.file.size,
-        label: item.label || null,
-      });
+      const result = await uploadAndRecordFile(fd);
       if (!result.ok) {
-        await supabase.storage.from("attachments").remove([storagePath]);
         failed.push({ item, reason: result.error });
         continue;
       }

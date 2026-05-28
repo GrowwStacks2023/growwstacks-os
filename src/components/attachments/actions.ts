@@ -20,22 +20,6 @@ function isEntityType(value: string): value is AttachmentEntityType {
   return (ENTITY_TYPES as readonly string[]).includes(value);
 }
 
-export type RecordFileInput = {
-  entityType: AttachmentEntityType;
-  entityId: string;
-  fileName: string;
-  storagePath: string;
-  publicUrl: string;
-  mimeType: string | null;
-  sizeBytes: number | null;
-  label: string | null;
-  // The detail page path to revalidate so the new row shows up after the
-  // client redirects/re-renders. Caller knows its own route, so it passes it
-  // in rather than us guessing from entityType. Optional — create-time uploads
-  // don't have a path to revalidate yet (the page doesn't exist until redirect).
-  revalidate?: string;
-};
-
 export type RecordLinkInput = {
   entityType: AttachmentEntityType;
   entityId: string;
@@ -48,15 +32,95 @@ export type RecordAttachmentResult =
   | { ok: true }
   | { ok: false; error: string };
 
-// Server action: after the browser has uploaded the file to Storage, insert
-// the metadata row. RLS guarantees uploaded_by = auth.uid().
-export async function recordFileAttachment(
-  input: RecordFileInput
-): Promise<RecordAttachmentResult> {
-  if (!isEntityType(input.entityType)) {
-    return { ok: false, error: "Invalid entity type." };
+// ─── Webhook upload ────────────────────────────────────────────────────
+// File uploads now go through an n8n webhook that puts the file on Google
+// Drive and returns a share link. We store ONLY the link (in the existing
+// `url` column on attachments, with kind='file' and storage_path/public_url
+// null — see migration 0014 which relaxed the shape check to allow this).
+//
+// The server hides the webhook URL from the client and validates the
+// response shape before inserting anything.
+
+function readWebhookUrl(): string | null {
+  const v = process.env.N8N_FILE_UPLOAD_WEBHOOK_URL?.trim();
+  return v && v.length > 0 ? v : null;
+}
+
+// Talks to the n8n webhook. Returns the Drive link on success, or a
+// human-readable error string on failure. NO database write happens here —
+// the caller decides whether to insert based on the result.
+async function postFileToWebhook(
+  file: File
+): Promise<{ ok: true; link: string } | { ok: false; error: string }> {
+  const webhookUrl = readWebhookUrl();
+  if (!webhookUrl) {
+    return {
+      ok: false,
+      error: "File upload is not configured (missing N8N_FILE_UPLOAD_WEBHOOK_URL).",
+    };
   }
 
+  // multipart/form-data with the file under field name "file". If n8n is
+  // configured to read a different field name, this is the first thing to
+  // adjust — we surface a clear error from the webhook rather than
+  // retrying with a different shape.
+  const body = new FormData();
+  body.append("file", file, file.name);
+
+  let res: Response;
+  try {
+    res = await fetch(webhookUrl, { method: "POST", body });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return { ok: false, error: `Upload failed — webhook unreachable: ${msg}` };
+  }
+
+  if (!res.ok) {
+    return {
+      ok: false,
+      error: `Upload failed — webhook returned ${res.status} ${res.statusText}.`,
+    };
+  }
+
+  // Expecting JSON { link: "<url>" }. We accept text/plain too as a defensive
+  // fallback if the webhook is misconfigured to not set Content-Type.
+  let parsed: unknown;
+  try {
+    parsed = await res.json();
+  } catch {
+    return {
+      ok: false,
+      error: "Upload failed — webhook response was not valid JSON.",
+    };
+  }
+
+  const link =
+    parsed && typeof parsed === "object" && "link" in parsed
+      ? (parsed as { link: unknown }).link
+      : null;
+  if (typeof link !== "string" || link.trim().length === 0) {
+    return {
+      ok: false,
+      error: "Upload failed — webhook returned no link.",
+    };
+  }
+
+  return { ok: true, link: link.trim() };
+}
+
+// Insert a kind='file' attachment row whose url is the Drive link.
+// storage_path and public_url stay null. RLS enforces uploaded_by =
+// auth.uid().
+async function insertFileAttachmentRow(args: {
+  entityType: AttachmentEntityType;
+  entityId: string;
+  fileName: string;
+  mimeType: string | null;
+  sizeBytes: number | null;
+  label: string | null;
+  driveLink: string;
+  revalidate?: string;
+}): Promise<RecordAttachmentResult> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -69,16 +133,17 @@ export async function recordFileAttachment(
   const { data: inserted, error: insertError } = await supabase
     .from("attachments")
     .insert({
-      entity_type: input.entityType,
-      entity_id: input.entityId,
+      entity_type: args.entityType,
+      entity_id: args.entityId,
       kind: "file",
-      file_name: input.fileName,
-      storage_path: input.storagePath,
-      public_url: input.publicUrl,
-      mime_type: input.mimeType,
-      size_bytes: input.sizeBytes,
-      label: input.label,
+      file_name: args.fileName,
+      url: args.driveLink,
+      mime_type: args.mimeType,
+      size_bytes: args.sizeBytes,
+      label: args.label,
       uploaded_by: user.id,
+      // storage_path + public_url intentionally left null — Drive-backed
+      // file. Migration 0014 relaxed the shape check to allow this.
     })
     .select()
     .single();
@@ -91,25 +156,80 @@ export async function recordFileAttachment(
   }
 
   const { error: logError } = await supabase.from("activity_log").insert({
-    entity_type: input.entityType,
-    entity_id: input.entityId,
+    entity_type: args.entityType,
+    entity_id: args.entityId,
     action: "attachment_added",
     actor_id: user.id,
     after_state: {
       attachment_id: inserted.id,
       kind: "file",
       file_name: inserted.file_name,
+      storage: "drive",
     },
   });
   if (logError) {
     console.error("activity_log insert failed:", logError);
   }
 
-  if (input.revalidate) revalidatePath(input.revalidate);
+  if (args.revalidate) revalidatePath(args.revalidate);
   return { ok: true };
 }
 
-// Server action: insert a kind='link' row. No Storage involvement.
+// Combined server action: takes a FormData carrying the file + metadata,
+// uploads it to the n8n webhook, then records the attachment row. ONE
+// round-trip from the client.
+//
+// FormData fields (set by the client):
+//   - file:        the File
+//   - entityType:  one of ENTITY_TYPES
+//   - entityId:    uuid
+//   - label:       optional human label
+//   - revalidate:  optional path to revalidate after insert
+//
+// On failure (webhook unreachable, webhook returns non-200, empty link,
+// or DB insert fails): NO row is inserted, error string is returned.
+export async function uploadAndRecordFile(
+  formData: FormData
+): Promise<RecordAttachmentResult> {
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) {
+    return { ok: false, error: "No file provided." };
+  }
+
+  const entityType = String(formData.get("entityType") ?? "");
+  const entityId = String(formData.get("entityId") ?? "");
+  const rawLabel = String(formData.get("label") ?? "").trim();
+  const revalidate = formData.get("revalidate");
+  const revalidatePath = revalidate ? String(revalidate) : undefined;
+
+  if (!isEntityType(entityType)) {
+    return { ok: false, error: "Invalid entity type." };
+  }
+  if (!entityId) {
+    return { ok: false, error: "Missing entity id." };
+  }
+
+  // POST to webhook. If anything goes wrong here we bail before touching
+  // the DB — partial state would be worse than a clean failure.
+  const upload = await postFileToWebhook(file);
+  if (!upload.ok) {
+    return upload;
+  }
+
+  return insertFileAttachmentRow({
+    entityType,
+    entityId,
+    fileName: file.name,
+    mimeType: file.type || null,
+    sizeBytes: file.size,
+    label: rawLabel.length > 0 ? rawLabel : null,
+    driveLink: upload.link,
+    revalidate: revalidatePath,
+  });
+}
+
+// Server action: insert a kind='link' row. No webhook involvement —
+// the user pasted a URL (Loom etc.).
 export async function recordLinkAttachment(
   input: RecordLinkInput
 ): Promise<RecordAttachmentResult> {
@@ -175,9 +295,10 @@ export type DeleteAttachmentResult =
   | { ok: true }
   | { ok: false; error: string };
 
-// Server action: remove the row AND (for kind='file') the Storage object.
-// RLS on attachments (admin OR uploaded_by = auth.uid()) gates who can
-// delete the row; the matching storage.objects policy gates the file delete.
+// Remove the row. For LEGACY bucket-backed rows (storage_path set) we also
+// drop the Storage object. For Drive-backed rows (storage_path null) we
+// don't try to delete anything on Drive — the n8n side doesn't expose a
+// delete webhook today; the row going away is what counts for the app.
 export async function deleteAttachment(
   attachmentId: string,
   revalidate: string
@@ -216,9 +337,10 @@ export async function deleteAttachment(
     return { ok: false, error: deleteRowError.message };
   }
 
-  // For files, also drop the Storage object. Links don't have one. If the
-  // storage delete fails after the row is gone we log but don't surface —
-  // a stray blob is the lesser evil compared to stale metadata.
+  // Only legacy bucket-backed rows have a storage object to clean up.
+  // Drive-backed rows have storage_path = null and we don't (yet) call out
+  // to n8n to delete from Drive — a stray Drive file is a finance/IT
+  // problem we'll solve when there's a delete-via-webhook contract.
   if (existing.kind === "file" && existing.storage_path) {
     const { error: deleteObjectError } = await supabase.storage
       .from("attachments")

@@ -1,12 +1,7 @@
 import { notFound } from "next/navigation";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Page, PageHeader } from "@/components/page-shell";
+import { Card, CardContent } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 
 import { NewMilestoneForm } from "./new-milestone-form";
@@ -40,18 +35,26 @@ export default async function NewMilestonePage({
   const nextSequence = (maxRow?.sequence ?? 0) + 1;
 
   return (
-    <div className="flex justify-center">
-      <Card className="w-full max-w-[560px]">
-        <CardHeader>
-          <CardTitle className="text-base">New milestone</CardTitle>
-          <CardDescription>
+    <Page>
+      <PageHeader
+        breadcrumbs={[
+          { label: "Dashboard", href: "/dashboard" },
+          { label: "Projects", href: "/dashboard/projects" },
+          { label: project.name, href: `/dashboard/projects/${id}` },
+          { label: "New milestone" },
+        ]}
+        title="New milestone"
+        description={
+          <>
             Add a phase to <span className="font-medium">{project.name}</span>.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+          </>
+        }
+      />
+      <Card className="w-full max-w-[640px]">
+        <CardContent className="pt-6">
           <NewMilestoneForm projectId={id} nextSequence={nextSequence} />
         </CardContent>
       </Card>
-    </div>
+    </Page>
   );
 }

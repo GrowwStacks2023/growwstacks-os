@@ -35,6 +35,7 @@ function dateOrNull(value: string): string | null {
 export async function createProjectDirect(input: {
   name: string;
   companyId: string;
+  contactId: string | null;
   description: string | null;
   status: string;
   pmId: string | null;
@@ -69,6 +70,7 @@ export async function createProjectDirect(input: {
     .from("projects")
     .insert({
       company_id: input.companyId,
+      contact_id: input.contactId,
       name,
       description: input.description,
       status,
@@ -107,6 +109,7 @@ export async function createProject(
   const result = await createProjectDirect({
     name: String(formData.get("name") ?? ""),
     companyId: String(formData.get("company_id") ?? "").trim(),
+    contactId: nullIfBlank(String(formData.get("contact_id") ?? "")),
     description: nullIfBlank(String(formData.get("description") ?? "")),
     status: String(formData.get("status") ?? "planning"),
     pmId: nullIfBlank(String(formData.get("pm_id") ?? "")),

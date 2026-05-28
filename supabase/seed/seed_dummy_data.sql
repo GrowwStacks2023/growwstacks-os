@@ -324,6 +324,84 @@ VALUES
 ON CONFLICT (id) DO NOTHING;
 
 
+-- ---------------------------------------------------------------------------
+-- Standalone tasks (exercise the new nullable-milestone shape from 0011)
+-- ---------------------------------------------------------------------------
+-- A sales follow-up that hangs off a deal — no project, no milestone yet.
+-- A discovery call attached to a contact directly. Both pin Raghav as the
+-- pm_id so the RLS standalone-task branch is well-exercised.
+INSERT INTO public.tasks (
+  id, milestone_id, project_id, deal_id, contact_id, pm_id, assignee_id,
+  title, description, status, priority, due_at
+)
+VALUES
+  ('99999999-1111-0000-0000-000000000001',
+   NULL, NULL,
+   '66666666-0002-0000-0000-000000000001', -- Acme automation pilot (qualified deal)
+   NULL,
+   (SELECT id FROM public.users WHERE email = 'raghav.joshi@growwstacks.com'),
+   (SELECT id FROM public.users WHERE email = 'raghav.joshi@growwstacks.com'),
+   'Send proposal deck',
+   'Tailored proposal for the Acme automation pilot — emphasise ROI on Q3 timeline.',
+   'todo', 'high',
+   '2026-06-05T17:00:00Z'),
+  ('99999999-1111-0000-0000-000000000002',
+   NULL, NULL,
+   NULL,
+   '22222222-2222-2222-2222-000000000003', -- Priya Sharma at Northwind Labs
+   (SELECT id FROM public.users WHERE email = 'raghav.joshi@growwstacks.com'),
+   (SELECT id FROM public.users WHERE email = 'raghav.joshi@growwstacks.com'),
+   'Discovery call: data warehouse pain points',
+   'Schedule a 30-min call to surface what blocked their last migration attempt.',
+   'todo', 'medium',
+   '2026-06-03T11:00:00Z')
+ON CONFLICT (id) DO NOTHING;
+
+
+-- ---------------------------------------------------------------------------
+-- Payments on the Acme Customer Portal project (mixed INR/USD, mixed status)
+-- ---------------------------------------------------------------------------
+-- The seeded Acme project has no linked deal_id (deals were inserted after
+-- the project; the FK was left NULL — symbolic linkage only). For payment
+-- math we hardcode company_id = Acme Robotics.
+INSERT INTO public.payments (
+  id, project_id, deal_id, company_id, amount, currency, kind, status,
+  reference, note, received_at, recorded_by
+)
+VALUES
+  -- 30% advance, INR, landed.
+  ('99999999-2222-0000-0000-000000000001',
+   '33333333-3333-3333-3333-000000000001',
+   NULL,
+   '11111111-1111-1111-1111-000000000001',
+   1200000.00, 'INR', 'advance', 'received',
+   'INV-ACME-2026-001',
+   'Mobilisation payment — 30%% of estimated engagement value.',
+   '2026-02-05T10:00:00Z',
+   (SELECT id FROM public.users WHERE email = 'raghav.joshi@growwstacks.com')),
+  -- Mid-engagement USD installment that landed.
+  ('99999999-2222-0000-0000-000000000002',
+   '33333333-3333-3333-3333-000000000001',
+   NULL,
+   '11111111-1111-1111-1111-000000000001',
+   25000.00, 'USD', 'installment', 'received',
+   'INV-ACME-2026-002',
+   'Phase 2 milestone payment — IA + wireframes signed off.',
+   '2026-04-12T14:30:00Z',
+   (SELECT id FROM public.users WHERE email = 'raghav.joshi@growwstacks.com')),
+  -- Outstanding final payment, expected.
+  ('99999999-2222-0000-0000-000000000003',
+   '33333333-3333-3333-3333-000000000001',
+   NULL,
+   '11111111-1111-1111-1111-000000000001',
+   1800000.00, 'INR', 'final', 'expected',
+   'INV-ACME-2026-003',
+   'Final invoice scheduled on project completion (target 2026-08-15).',
+   NULL,
+   (SELECT id FROM public.users WHERE email = 'raghav.joshi@growwstacks.com'))
+ON CONFLICT (id) DO NOTHING;
+
+
 COMMIT;
 
 
@@ -336,4 +414,5 @@ UNION ALL SELECT 'deals',     COUNT(*) FROM public.deals
 UNION ALL SELECT 'projects',  COUNT(*) FROM public.projects
 UNION ALL SELECT 'milestones',COUNT(*) FROM public.milestones
 UNION ALL SELECT 'tasks',     COUNT(*) FROM public.tasks
+UNION ALL SELECT 'payments',  COUNT(*) FROM public.payments
 ORDER BY table_name;
