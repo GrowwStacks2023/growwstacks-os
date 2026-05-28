@@ -17,6 +17,7 @@ const PROJECT_STATUSES: readonly ProjectStatus[] = [
 
 export type CreateProjectState = {
   error: string | null;
+  projectId: string | null;
 };
 
 function nullIfBlank(value: string): string | null {
@@ -27,36 +28,32 @@ function nullIfBlank(value: string): string | null {
 function dateOrNull(value: string): string | null {
   const v = value.trim();
   if (!v) return null;
-  // <input type="date"> produces "YYYY-MM-DD"; Postgres can cast that to
-  // timestamptz directly, but pass an explicit midnight UTC for clarity.
   if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return null;
   return new Date(`${v}T00:00:00.000Z`).toISOString();
 }
 
-export async function createProject(
-  _prevState: CreateProjectState,
-  formData: FormData
-): Promise<CreateProjectState> {
-  const name = String(formData.get("name") ?? "").trim();
-  const companyId = String(formData.get("company_id") ?? "").trim();
-  const description = nullIfBlank(String(formData.get("description") ?? ""));
-  const statusRaw = String(formData.get("status") ?? "planning");
-  const pmRaw = nullIfBlank(String(formData.get("pm_id") ?? ""));
-  const startedAt = dateOrNull(String(formData.get("started_at") ?? ""));
-  const expectedEndAt = dateOrNull(
-    String(formData.get("expected_end_at") ?? "")
-  );
-
+export async function createProjectDirect(input: {
+  name: string;
+  companyId: string;
+  description: string | null;
+  status: string;
+  pmId: string | null;
+  startedAt: string | null;
+  expectedEndAt: string | null;
+}): Promise<CreateProjectState> {
+  const name = input.name.trim();
   if (!name) {
-    return { error: "Project name is required." };
+    return { error: "Project name is required.", projectId: null };
+  }
+  if (!input.companyId) {
+    return {
+      error: "Please pick a company for this project.",
+      projectId: null,
+    };
   }
 
-  if (!companyId) {
-    return { error: "Please pick a company for this project." };
-  }
-
-  const status = (PROJECT_STATUSES as readonly string[]).includes(statusRaw)
-    ? (statusRaw as ProjectStatus)
+  const status = (PROJECT_STATUSES as readonly string[]).includes(input.status)
+    ? (input.status as ProjectStatus)
     : "planning";
 
   const supabase = await createClient();
@@ -65,19 +62,19 @@ export async function createProject(
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return { error: "You must be signed in." };
+    return { error: "You must be signed in.", projectId: null };
   }
 
   const { data: inserted, error: insertError } = await supabase
     .from("projects")
     .insert({
-      company_id: companyId,
+      company_id: input.companyId,
       name,
-      description,
+      description: input.description,
       status,
-      pm_id: pmRaw,
-      started_at: startedAt,
-      expected_end_at: expectedEndAt,
+      pm_id: input.pmId,
+      started_at: input.startedAt,
+      expected_end_at: input.expectedEndAt,
     })
     .select()
     .single();
@@ -85,6 +82,7 @@ export async function createProject(
   if (insertError || !inserted) {
     return {
       error: insertError?.message ?? "Couldn't create the project.",
+      projectId: null,
     };
   }
 
@@ -95,12 +93,30 @@ export async function createProject(
     actor_id: user.id,
     after_state: inserted,
   });
-
   if (logError) {
-    // Don't fail the user-facing flow if the audit row is rejected, but surface
-    // it to the server logs so we notice if RLS bites us.
     console.error("activity_log insert failed:", logError);
   }
 
-  redirect(`/dashboard/projects/${inserted.id}`);
+  return { error: null, projectId: inserted.id };
+}
+
+export async function createProject(
+  _prevState: CreateProjectState,
+  formData: FormData
+): Promise<CreateProjectState> {
+  const result = await createProjectDirect({
+    name: String(formData.get("name") ?? ""),
+    companyId: String(formData.get("company_id") ?? "").trim(),
+    description: nullIfBlank(String(formData.get("description") ?? "")),
+    status: String(formData.get("status") ?? "planning"),
+    pmId: nullIfBlank(String(formData.get("pm_id") ?? "")),
+    startedAt: dateOrNull(String(formData.get("started_at") ?? "")),
+    expectedEndAt: dateOrNull(String(formData.get("expected_end_at") ?? "")),
+  });
+
+  if (result.error || !result.projectId) {
+    return result;
+  }
+
+  redirect(`/dashboard/projects/${result.projectId}`);
 }

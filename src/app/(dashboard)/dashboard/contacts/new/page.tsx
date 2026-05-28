@@ -1,6 +1,3 @@
-import Link from "next/link";
-
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -19,32 +16,17 @@ export default async function NewContactPage() {
     .select("id, name")
     .order("name", { ascending: true });
 
-  const hasCompanies = (companies?.length ?? 0) > 0;
-
   return (
     <div className="flex justify-center">
-      <Card className="w-full max-w-[480px]">
+      <Card className="w-full max-w-[560px]">
         <CardHeader>
           <CardTitle className="text-base">New contact</CardTitle>
           <CardDescription>
-            Add a person at one of your companies.
+            A contact can stand alone or belong to a company.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {hasCompanies ? (
-            <NewContactForm companies={companies ?? []} />
-          ) : (
-            <div className="flex flex-col gap-3">
-              <p className="text-sm text-muted-foreground">
-                Create a company first — every contact has to belong to one.
-              </p>
-              <div>
-                <Button render={<Link href="/dashboard/companies/new" />}>
-                  Create company
-                </Button>
-              </div>
-            </div>
-          )}
+          <NewContactForm companies={companies ?? []} />
         </CardContent>
       </Card>
     </div>

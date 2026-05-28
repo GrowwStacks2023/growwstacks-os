@@ -84,7 +84,12 @@ export default async function CompaniesPage() {
                 {companies.map((company) => (
                   <TableRow key={company.id}>
                     <TableCell className="pl-4 font-medium">
-                      {company.name}
+                      <Link
+                        href={`/dashboard/companies/${company.id}`}
+                        className="hover:underline"
+                      >
+                        {company.name}
+                      </Link>
                     </TableCell>
                     <TableCell className="capitalize text-muted-foreground">
                       {company.type}

@@ -25,6 +25,7 @@ const TASK_PRIORITIES: readonly TaskPriority[] = [
 
 export type CreateTaskState = {
   error: string | null;
+  taskId: string | null;
 };
 
 function nullIfBlank(value: string): string | null {
@@ -46,31 +47,31 @@ function numberOrNull(value: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-export async function createTask(
-  projectId: string,
-  milestoneId: string,
-  _prevState: CreateTaskState,
-  formData: FormData
-): Promise<CreateTaskState> {
-  const title = String(formData.get("title") ?? "").trim();
-  const description = nullIfBlank(String(formData.get("description") ?? ""));
-  const assigneeRaw = nullIfBlank(String(formData.get("assignee_id") ?? ""));
-  const statusRaw = String(formData.get("status") ?? "todo");
-  const priorityRaw = String(formData.get("priority") ?? "medium");
-  const estimateHours = numberOrNull(
-    String(formData.get("estimate_hours") ?? "")
-  );
-  const dueAt = dateOrNull(String(formData.get("due_at") ?? ""));
-
+// Direct entry point so the create form can stage attachments and commit
+// them client-side after the row exists.
+export async function createTaskDirect(input: {
+  projectId: string;
+  milestoneId: string;
+  title: string;
+  description: string | null;
+  status: string;
+  priority: string;
+  assigneeId: string | null;
+  estimateHours: number | null;
+  dueAt: string | null;
+}): Promise<CreateTaskState> {
+  const title = input.title.trim();
   if (!title) {
-    return { error: "Task title is required." };
+    return { error: "Task title is required.", taskId: null };
   }
 
-  const status = (TASK_STATUSES as readonly string[]).includes(statusRaw)
-    ? (statusRaw as TaskStatus)
+  const status = (TASK_STATUSES as readonly string[]).includes(input.status)
+    ? (input.status as TaskStatus)
     : "todo";
-  const priority = (TASK_PRIORITIES as readonly string[]).includes(priorityRaw)
-    ? (priorityRaw as TaskPriority)
+  const priority = (TASK_PRIORITIES as readonly string[]).includes(
+    input.priority
+  )
+    ? (input.priority as TaskPriority)
     : "medium";
 
   const supabase = await createClient();
@@ -79,25 +80,25 @@ export async function createTask(
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return { error: "You must be signed in." };
+    return { error: "You must be signed in.", taskId: null };
   }
 
-  // The consistency trigger requires tasks.project_id to match the parent
-  // milestone's project_id. Re-fetch from the milestone (don't trust the URL
-  // segment blindly) so a tampered URL can't smuggle a mismatched project_id
-  // past us.
+  // Re-fetch from the milestone so a tampered URL can't smuggle a mismatched
+  // project_id past the consistency trigger.
   const { data: milestone, error: milestoneError } = await supabase
     .from("milestones")
     .select("id, project_id")
-    .eq("id", milestoneId)
+    .eq("id", input.milestoneId)
     .maybeSingle();
 
   if (milestoneError || !milestone) {
-    return { error: "Milestone not found." };
+    return { error: "Milestone not found.", taskId: null };
   }
-
-  if (milestone.project_id !== projectId) {
-    return { error: "This milestone doesn't belong to that project." };
+  if (milestone.project_id !== input.projectId) {
+    return {
+      error: "This milestone doesn't belong to that project.",
+      taskId: null,
+    };
   }
 
   const { data: inserted, error: insertError } = await supabase
@@ -106,12 +107,12 @@ export async function createTask(
       milestone_id: milestone.id,
       project_id: milestone.project_id,
       title,
-      description,
+      description: input.description,
       status,
       priority,
-      assignee_id: assigneeRaw,
-      estimate_hours: estimateHours,
-      due_at: dueAt,
+      assignee_id: input.assigneeId,
+      estimate_hours: input.estimateHours,
+      due_at: input.dueAt,
     })
     .select()
     .single();
@@ -119,6 +120,7 @@ export async function createTask(
   if (insertError || !inserted) {
     return {
       error: insertError?.message ?? "Couldn't create the task.",
+      taskId: null,
     };
   }
 
@@ -129,10 +131,39 @@ export async function createTask(
     actor_id: user.id,
     after_state: inserted,
   });
-
   if (logError) {
     console.error("activity_log insert failed:", logError);
   }
 
-  redirect(`/dashboard/projects/${projectId}`);
+  return { error: null, taskId: inserted.id };
+}
+
+// FormData wrapper retained in case a server-action submission is ever
+// re-introduced. Mirrors the contact / deal pattern: validates, delegates,
+// redirects on success.
+export async function createTask(
+  projectId: string,
+  milestoneId: string,
+  _prevState: CreateTaskState,
+  formData: FormData
+): Promise<CreateTaskState> {
+  const result = await createTaskDirect({
+    projectId,
+    milestoneId,
+    title: String(formData.get("title") ?? ""),
+    description: nullIfBlank(String(formData.get("description") ?? "")),
+    status: String(formData.get("status") ?? "todo"),
+    priority: String(formData.get("priority") ?? "medium"),
+    assigneeId: nullIfBlank(String(formData.get("assignee_id") ?? "")),
+    estimateHours: numberOrNull(String(formData.get("estimate_hours") ?? "")),
+    dueAt: dateOrNull(String(formData.get("due_at") ?? "")),
+  });
+
+  if (result.error || !result.taskId) {
+    return result;
+  }
+
+  redirect(
+    `/dashboard/projects/${projectId}/milestones/${milestoneId}/tasks/${result.taskId}`
+  );
 }

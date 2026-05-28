@@ -35,7 +35,7 @@ export default async function ContactsPage() {
         <div>
           <h1 className="font-heading text-xl font-medium">Contacts</h1>
           <p className="text-sm text-muted-foreground">
-            People at your companies.
+            People you work with — at companies or standalone.
           </p>
         </div>
         <Button render={<Link href="/dashboard/contacts/new" />}>
@@ -83,7 +83,12 @@ export default async function ContactsPage() {
                 {contacts.map((contact) => (
                   <TableRow key={contact.id}>
                     <TableCell className="pl-4 font-medium">
-                      {contact.name}
+                      <Link
+                        href={`/dashboard/contacts/${contact.id}`}
+                        className="hover:underline"
+                      >
+                        {contact.name}
+                      </Link>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {contact.company?.name ?? "—"}

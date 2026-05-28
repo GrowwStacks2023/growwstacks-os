@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { AttachmentsCard } from "@/components/attachments";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -179,7 +180,12 @@ export default async function ProjectDetailPage({
                           #{milestone.sequence}
                         </span>
                         <CardTitle className="text-base">
-                          {milestone.name}
+                          <Link
+                            href={`/dashboard/projects/${id}/milestones/${milestone.id}`}
+                            className="hover:underline"
+                          >
+                            {milestone.name}
+                          </Link>
                         </CardTitle>
                         <Badge
                           variant={status.variant}
@@ -232,9 +238,12 @@ export default async function ProjectDetailPage({
                             className="flex flex-col gap-2 py-2.5 sm:flex-row sm:items-center sm:justify-between"
                           >
                             <div className="flex flex-col gap-1">
-                              <span className="text-sm font-medium">
+                              <Link
+                                href={`/dashboard/projects/${id}/milestones/${milestone.id}/tasks/${task.id}`}
+                                className="text-sm font-medium hover:underline"
+                              >
                                 {task.title}
-                              </span>
+                              </Link>
                               <span className="text-xs text-muted-foreground">
                                 {assigneeDisplay}
                                 {task.estimate_hours != null
@@ -270,6 +279,12 @@ export default async function ProjectDetailPage({
           })
         )}
       </div>
+
+      <AttachmentsCard
+        entityType="project"
+        entityId={project.id}
+        revalidatePath={`/dashboard/projects/${id}`}
+      />
     </div>
   );
 }

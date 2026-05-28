@@ -1,8 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
+import {
+  commitStagedAttachments,
+  StagedAttachments,
+  type StagedItem,
+} from "@/components/attachments/staged";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,9 +23,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { DEAL_SOURCE_OPTIONS, DEAL_STAGE_OPTIONS } from "@/lib/status-colors";
 
-import { createDeal, type CreateDealState } from "./actions";
-
-const initialState: CreateDealState = { error: null };
+import { createDealDirect } from "./actions";
 
 type CompanyOption = { id: string; name: string };
 type ContactOption = {
@@ -28,6 +32,21 @@ type ContactOption = {
   companyName: string | null;
 };
 type UserOption = { id: string; name: string | null; email: string };
+
+const UNASSIGNED = "__unassigned__";
+const NO_CONTACT = "__none__";
+
+function nullIfBlank(v: string): string | null {
+  const t = v.trim();
+  return t ? t : null;
+}
+
+function numberOrNull(v: string): number | null {
+  const t = v.trim();
+  if (!t) return null;
+  const n = Number(t);
+  return Number.isFinite(n) && n >= 0 ? n : null;
+}
 
 export function NewDealForm({
   companies,
@@ -38,16 +57,118 @@ export function NewDealForm({
   contacts: ContactOption[];
   owners: UserOption[];
 }) {
-  const [state, formAction, pending] = useActionState(
-    createDeal,
-    initialState
-  );
+  const router = useRouter();
+
+  const [title, setTitle] = useState("");
+  const [companyId, setCompanyId] = useState<string>("");
+  const [description, setDescription] = useState("");
+  const [stage, setStage] = useState("new");
+  const [source, setSource] = useState("other");
+  const [valueInr, setValueInr] = useState("");
+  const [valueUsd, setValueUsd] = useState("");
+  const [ownerId, setOwnerId] = useState<string>(UNASSIGNED);
+  const [contactId, setContactId] = useState<string>(NO_CONTACT);
+
+  const [staged, setStaged] = useState<StagedItem[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+  const [partial, setPartial] = useState<{
+    dealId: string;
+    failures: { name: string; reason: string }[];
+  } | null>(null);
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+
+    if (!title.trim()) {
+      setError("Deal title is required.");
+      return;
+    }
+    if (!companyId) {
+      setError("Please pick a company for this deal.");
+      return;
+    }
+
+    setPending(true);
+
+    const result = await createDealDirect({
+      title,
+      companyId,
+      description: nullIfBlank(description),
+      stage,
+      source,
+      ownerId: ownerId === UNASSIGNED ? null : ownerId,
+      contactId: contactId === NO_CONTACT ? null : contactId,
+      valueInr: numberOrNull(valueInr),
+      valueUsd: numberOrNull(valueUsd),
+    });
+
+    if (result.error || !result.dealId) {
+      setPending(false);
+      setError(result.error ?? "Couldn't create the deal.");
+      return;
+    }
+
+    const dealId = result.dealId;
+
+    if (staged.length === 0) {
+      router.push(`/dashboard/deals/${dealId}`);
+      return;
+    }
+
+    const commit = await commitStagedAttachments("deal", dealId, staged);
+
+    if (commit.failed.length === 0) {
+      router.push(`/dashboard/deals/${dealId}`);
+      return;
+    }
+
+    setPending(false);
+    setPartial({
+      dealId,
+      failures: commit.failed.map((f) => ({
+        name:
+          f.item.kind === "file"
+            ? f.item.label || f.item.file.name
+            : f.item.label || f.item.url,
+        reason: f.reason,
+      })),
+    });
+  }
+
+  if (partial) {
+    return (
+      <div className="flex flex-col gap-4">
+        <Alert>
+          <AlertDescription>
+            Deal created, but {partial.failures.length} attachment
+            {partial.failures.length === 1 ? "" : "s"} failed:
+            <ul className="mt-2 list-disc pl-5 text-sm">
+              {partial.failures.map((f, i) => (
+                <li key={i}>
+                  <span className="font-medium">{f.name}</span> — {f.reason}
+                </li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
+        <div className="flex justify-end">
+          <Button
+            render={<Link href={`/dashboard/deals/${partial.dealId}`} />}
+          >
+            Continue to deal
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <form action={formAction} className="flex flex-col gap-4">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
         <Label htmlFor="company_id">Company</Label>
-        <Select name="company_id" required disabled={pending}>
+        <Select value={companyId} onValueChange={(v) => setCompanyId(v ?? "")} disabled={pending}>
           <SelectTrigger id="company_id" className="w-full">
             <SelectValue placeholder="Select a company" />
           </SelectTrigger>
@@ -65,11 +186,12 @@ export function NewDealForm({
         <Label htmlFor="title">Title</Label>
         <Input
           id="title"
-          name="title"
           type="text"
           autoComplete="off"
           required
           disabled={pending}
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
         />
       </div>
 
@@ -77,16 +199,17 @@ export function NewDealForm({
         <Label htmlFor="description">Description</Label>
         <Textarea
           id="description"
-          name="description"
           rows={3}
           disabled={pending}
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
         />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-2">
           <Label htmlFor="stage">Stage</Label>
-          <Select name="stage" defaultValue="new" disabled={pending}>
+          <Select value={stage} onValueChange={(v) => setStage(v ?? "new")} disabled={pending}>
             <SelectTrigger id="stage" className="w-full">
               <SelectValue />
             </SelectTrigger>
@@ -102,7 +225,7 @@ export function NewDealForm({
 
         <div className="flex flex-col gap-2">
           <Label htmlFor="source">Source</Label>
-          <Select name="source" defaultValue="other" disabled={pending}>
+          <Select value={source} onValueChange={(v) => setSource(v ?? "other")} disabled={pending}>
             <SelectTrigger id="source" className="w-full">
               <SelectValue />
             </SelectTrigger>
@@ -122,31 +245,37 @@ export function NewDealForm({
           <Label htmlFor="value_inr">Value (INR)</Label>
           <Input
             id="value_inr"
-            name="value_inr"
             type="number"
             inputMode="decimal"
             min="0"
             step="0.01"
             disabled={pending}
+            value={valueInr}
+            onChange={(e) => setValueInr(e.target.value)}
           />
         </div>
         <div className="flex flex-col gap-2">
           <Label htmlFor="value_usd">Value (USD)</Label>
           <Input
             id="value_usd"
-            name="value_usd"
             type="number"
             inputMode="decimal"
             min="0"
             step="0.01"
             disabled={pending}
+            value={valueUsd}
+            onChange={(e) => setValueUsd(e.target.value)}
           />
         </div>
       </div>
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="owner_id">Owner</Label>
-        <Select name="owner_id" disabled={pending || owners.length === 0}>
+        <Select
+          value={ownerId}
+          onValueChange={(v) => setOwnerId(v ?? UNASSIGNED)}
+          disabled={pending || owners.length === 0}
+        >
           <SelectTrigger id="owner_id" className="w-full">
             <SelectValue
               placeholder={
@@ -155,6 +284,7 @@ export function NewDealForm({
             />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value={UNASSIGNED}>— Unassigned —</SelectItem>
             {owners.map((u) => (
               <SelectItem key={u.id} value={u.id}>
                 {u.name ?? u.email}
@@ -166,7 +296,11 @@ export function NewDealForm({
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="contact_id">Contact</Label>
-        <Select name="contact_id" disabled={pending || contacts.length === 0}>
+        <Select
+          value={contactId}
+          onValueChange={(v) => setContactId(v ?? NO_CONTACT)}
+          disabled={pending || contacts.length === 0}
+        >
           <SelectTrigger id="contact_id" className="w-full">
             <SelectValue
               placeholder={
@@ -175,6 +309,7 @@ export function NewDealForm({
             />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value={NO_CONTACT}>— None —</SelectItem>
             {contacts.map((c) => (
               <SelectItem key={c.id} value={c.id}>
                 {c.companyName ? `${c.name} (${c.companyName})` : c.name}
@@ -184,9 +319,15 @@ export function NewDealForm({
         </Select>
       </div>
 
-      {state.error ? (
+      <StagedAttachments
+        items={staged}
+        onChange={setStaged}
+        disabled={pending}
+      />
+
+      {error ? (
         <Alert variant="destructive">
-          <AlertDescription>{state.error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       ) : null}
 

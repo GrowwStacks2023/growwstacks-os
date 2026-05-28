@@ -27,6 +27,7 @@ const DEAL_SOURCES: readonly DealSource[] = [
 
 export type CreateDealState = {
   error: string | null;
+  dealId: string | null;
 };
 
 function nullIfBlank(value: string): string | null {
@@ -42,33 +43,32 @@ function numericOrNull(value: string): number | null {
   return n;
 }
 
-export async function createDeal(
-  _prevState: CreateDealState,
-  formData: FormData
-): Promise<CreateDealState> {
-  const title = String(formData.get("title") ?? "").trim();
-  const companyId = String(formData.get("company_id") ?? "").trim();
-  const description = nullIfBlank(String(formData.get("description") ?? ""));
-  const stageRaw = String(formData.get("stage") ?? "new");
-  const sourceRaw = String(formData.get("source") ?? "other");
-  const ownerId = nullIfBlank(String(formData.get("owner_id") ?? ""));
-  const contactId = nullIfBlank(String(formData.get("contact_id") ?? ""));
-  const valueInr = numericOrNull(String(formData.get("value_inr") ?? ""));
-  const valueUsd = numericOrNull(String(formData.get("value_usd") ?? ""));
-
+// Direct (non-form-action) entry point used by the create form so the client
+// can do post-create work before navigating.
+export async function createDealDirect(input: {
+  title: string;
+  companyId: string;
+  description: string | null;
+  stage: string;
+  source: string;
+  ownerId: string | null;
+  contactId: string | null;
+  valueInr: number | null;
+  valueUsd: number | null;
+}): Promise<CreateDealState> {
+  const title = input.title.trim();
   if (!title) {
-    return { error: "Deal title is required." };
+    return { error: "Deal title is required.", dealId: null };
+  }
+  if (!input.companyId) {
+    return { error: "Please pick a company for this deal.", dealId: null };
   }
 
-  if (!companyId) {
-    return { error: "Please pick a company for this deal." };
-  }
-
-  const stage = (DEAL_STAGES as readonly string[]).includes(stageRaw)
-    ? (stageRaw as DealStage)
+  const stage = (DEAL_STAGES as readonly string[]).includes(input.stage)
+    ? (input.stage as DealStage)
     : "new";
-  const source = (DEAL_SOURCES as readonly string[]).includes(sourceRaw)
-    ? (sourceRaw as DealSource)
+  const source = (DEAL_SOURCES as readonly string[]).includes(input.source)
+    ? (input.source as DealSource)
     : "other";
 
   const supabase = await createClient();
@@ -77,21 +77,21 @@ export async function createDeal(
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return { error: "You must be signed in." };
+    return { error: "You must be signed in.", dealId: null };
   }
 
   const { data: inserted, error: insertError } = await supabase
     .from("deals")
     .insert({
-      company_id: companyId,
-      contact_id: contactId,
-      owner_id: ownerId,
+      company_id: input.companyId,
+      contact_id: input.contactId,
+      owner_id: input.ownerId,
       title,
-      description,
+      description: input.description,
       stage,
       source,
-      value_inr: valueInr,
-      value_usd: valueUsd,
+      value_inr: input.valueInr,
+      value_usd: input.valueUsd,
     })
     .select()
     .single();
@@ -99,6 +99,7 @@ export async function createDeal(
   if (insertError || !inserted) {
     return {
       error: insertError?.message ?? "Couldn't create the deal.",
+      dealId: null,
     };
   }
 
@@ -109,12 +110,34 @@ export async function createDeal(
     actor_id: user.id,
     after_state: inserted,
   });
-
   if (logError) {
-    // Don't fail the user-facing flow if the audit row is rejected, but surface
-    // it to the server logs so we notice if RLS bites us.
     console.error("activity_log insert failed:", logError);
   }
 
-  redirect("/dashboard/deals");
+  return { error: null, dealId: inserted.id };
+}
+
+// FormData wrapper kept so the action remains usable as a form action if
+// needed. The new-deal-form uses createDealDirect so it can stage attachments.
+export async function createDeal(
+  _prevState: CreateDealState,
+  formData: FormData
+): Promise<CreateDealState> {
+  const result = await createDealDirect({
+    title: String(formData.get("title") ?? ""),
+    companyId: String(formData.get("company_id") ?? "").trim(),
+    description: nullIfBlank(String(formData.get("description") ?? "")),
+    stage: String(formData.get("stage") ?? "new"),
+    source: String(formData.get("source") ?? "other"),
+    ownerId: nullIfBlank(String(formData.get("owner_id") ?? "")),
+    contactId: nullIfBlank(String(formData.get("contact_id") ?? "")),
+    valueInr: numericOrNull(String(formData.get("value_inr") ?? "")),
+    valueUsd: numericOrNull(String(formData.get("value_usd") ?? "")),
+  });
+
+  if (result.error || !result.dealId) {
+    return result;
+  }
+
+  redirect(`/dashboard/deals/${result.dealId}`);
 }

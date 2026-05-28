@@ -55,6 +55,62 @@ export type Database = {
           },
         ]
       }
+      attachments: {
+        Row: {
+          created_at: string
+          entity_id: string
+          entity_type: string
+          file_name: string
+          id: string
+          kind: string
+          label: string | null
+          mime_type: string | null
+          public_url: string | null
+          size_bytes: number | null
+          storage_path: string | null
+          uploaded_by: string | null
+          url: string | null
+        }
+        Insert: {
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          file_name: string
+          id?: string
+          kind?: string
+          label?: string | null
+          mime_type?: string | null
+          public_url?: string | null
+          size_bytes?: number | null
+          storage_path?: string | null
+          uploaded_by?: string | null
+          url?: string | null
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          file_name?: string
+          id?: string
+          kind?: string
+          label?: string | null
+          mime_type?: string | null
+          public_url?: string | null
+          size_bytes?: number | null
+          storage_path?: string | null
+          uploaded_by?: string | null
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attachments_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       communications: {
         Row: {
           body: string | null
@@ -212,7 +268,7 @@ export type Database = {
       }
       contacts: {
         Row: {
-          company_id: string
+          company_id: string | null
           created_at: string
           email: string | null
           id: string
@@ -224,7 +280,7 @@ export type Database = {
           whatsapp: string | null
         }
         Insert: {
-          company_id: string
+          company_id?: string | null
           created_at?: string
           email?: string | null
           id?: string
@@ -236,7 +292,7 @@ export type Database = {
           whatsapp?: string | null
         }
         Update: {
-          company_id?: string
+          company_id?: string | null
           created_at?: string
           email?: string | null
           id?: string
