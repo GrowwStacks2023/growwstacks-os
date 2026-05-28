@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 
+import { Sidebar } from "./sidebar";
 import { SignOutButton } from "./sign-out-button";
 
 export default async function DashboardLayout({
@@ -22,21 +23,17 @@ export default async function DashboardLayout({
     (user.user_metadata?.name as string | undefined) ?? user.email ?? "Account";
 
   return (
-    <div className="flex min-h-svh flex-col bg-background">
-      <header className="border-b bg-card">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-3">
-          <div className="font-heading text-base font-medium">
-            GrowwStacks OS
-          </div>
-          <div className="flex items-center gap-3">
+    <div className="flex min-h-svh bg-background">
+      <Sidebar />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="border-b bg-card">
+          <div className="flex items-center justify-end gap-3 px-6 py-2.5">
             <span className="text-sm text-muted-foreground">{displayName}</span>
             <SignOutButton />
           </div>
-        </div>
-      </header>
-      <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">
-        {children}
-      </main>
+        </header>
+        <main className="flex-1 px-8 py-8">{children}</main>
+      </div>
     </div>
   );
 }
