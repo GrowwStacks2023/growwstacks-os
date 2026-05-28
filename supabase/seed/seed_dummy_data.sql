@@ -238,6 +238,92 @@ VALUES
    'Workshop notes write-up',         'done',        'low',    2.0,  '2026-04-26T18:00:00Z')
 ON CONFLICT (id) DO NOTHING;
 
+-- ---------------------------------------------------------------------------
+-- Deals
+-- ---------------------------------------------------------------------------
+-- Spread across stages so the pipeline page has something to render in each
+-- bucket. Mix of INR and USD values, varied sources, owner is Raghav where
+-- one is assigned (some intentionally left unassigned).
+INSERT INTO public.deals (
+  id, company_id, contact_id, owner_id,
+  source, stage, title, description,
+  value_inr, value_usd,
+  won_at, lost_at, lost_reason
+)
+VALUES
+  -- new
+  ('66666666-0001-0000-0000-000000000001',
+   '11111111-1111-1111-1111-000000000003',
+   '22222222-2222-2222-2222-000000000005',
+   (SELECT id FROM public.users WHERE email = 'raghav.joshi@growwstacks.com'),
+   'inbound', 'new',
+   'Vertex Health — chatbot pilot',
+   'Inbound from website contact form. Wants a HIPAA-aware patient triage bot.',
+   NULL, 18000.00, NULL, NULL, NULL),
+
+  -- qualified
+  ('66666666-0002-0000-0000-000000000001',
+   '11111111-1111-1111-1111-000000000001',
+   '22222222-2222-2222-2222-000000000002',
+   (SELECT id FROM public.users WHERE email = 'raghav.joshi@growwstacks.com'),
+   'referral', 'qualified',
+   'Acme Robotics — analytics revamp',
+   'Referral from Acme VP Eng. Discovery call done, budget confirmed.',
+   2500000.00, NULL, NULL, NULL, NULL),
+
+  -- proposal_sent
+  ('66666666-0003-0000-0000-000000000001',
+   '11111111-1111-1111-1111-000000000002',
+   '22222222-2222-2222-2222-000000000003',
+   NULL,
+   'linkedin', 'proposal_sent',
+   'Northwind Labs — ML ops platform',
+   'Multi-phase ML platform engagement. Proposal sent on 2026-05-15, awaiting feedback.',
+   NULL, 95000.00, NULL, NULL, NULL),
+
+  -- negotiation
+  ('66666666-0004-0000-0000-000000000001',
+   '11111111-1111-1111-1111-000000000001',
+   NULL,
+   (SELECT id FROM public.users WHERE email = 'raghav.joshi@growwstacks.com'),
+   'upwork', 'negotiation',
+   'Acme Robotics — internal tooling addon',
+   'Add-on for the customer portal project. Negotiating scope vs. timeline.',
+   850000.00, NULL, NULL, NULL, NULL),
+
+  -- won (this is the deal the seeded Acme Customer Portal would have come from
+  -- — symbolic only, no FK linking the seeded project to it)
+  ('66666666-0005-0000-0000-000000000001',
+   '11111111-1111-1111-1111-000000000001',
+   '22222222-2222-2222-2222-000000000001',
+   (SELECT id FROM public.users WHERE email = 'raghav.joshi@growwstacks.com'),
+   'referral', 'won',
+   'Acme Robotics — customer portal',
+   'Won. Now in delivery as the Acme Customer Portal project.',
+   NULL, 140000.00, '2026-01-22T10:00:00Z', NULL, NULL),
+
+  ('66666666-0005-0000-0000-000000000002',
+   '11111111-1111-1111-1111-000000000002',
+   '22222222-2222-2222-2222-000000000004',
+   (SELECT id FROM public.users WHERE email = 'raghav.joshi@growwstacks.com'),
+   'inbound', 'won',
+   'Northwind Labs — warehouse migration',
+   'Won. Kicking off as the Northwind Data Migration project.',
+   NULL, 72000.00, '2026-05-12T09:30:00Z', NULL, NULL),
+
+  -- lost
+  ('66666666-0006-0000-0000-000000000001',
+   '11111111-1111-1111-1111-000000000003',
+   NULL,
+   (SELECT id FROM public.users WHERE email = 'raghav.joshi@growwstacks.com'),
+   'other', 'lost',
+   'Vertex Health — brand video series',
+   'Out-of-scope for us; client wanted in-house video production.',
+   NULL, 22000.00, NULL, '2026-04-30T16:00:00Z',
+   'Scope mismatch — client needed full-service video, not our strength.')
+ON CONFLICT (id) DO NOTHING;
+
+
 COMMIT;
 
 
@@ -246,6 +332,7 @@ COMMIT;
 -- ---------------------------------------------------------------------------
 SELECT 'companies'  AS table_name, COUNT(*) AS rows FROM public.companies
 UNION ALL SELECT 'contacts',  COUNT(*) FROM public.contacts
+UNION ALL SELECT 'deals',     COUNT(*) FROM public.deals
 UNION ALL SELECT 'projects',  COUNT(*) FROM public.projects
 UNION ALL SELECT 'milestones',COUNT(*) FROM public.milestones
 UNION ALL SELECT 'tasks',     COUNT(*) FROM public.tasks

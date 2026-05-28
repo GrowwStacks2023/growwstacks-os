@@ -4,6 +4,8 @@ type ProjectStatus = Database["public"]["Enums"]["project_status"];
 type MilestoneStatus = Database["public"]["Enums"]["milestone_status"];
 type TaskStatus = Database["public"]["Enums"]["task_status"];
 type TaskPriority = Database["public"]["Enums"]["task_priority"];
+type DealStage = Database["public"]["Enums"]["deal_stage"];
+type DealSource = Database["public"]["Enums"]["deal_source"];
 
 // Badge component supports: default | secondary | destructive | outline | ghost
 type BadgeVariant = "default" | "secondary" | "destructive" | "outline" | "ghost";
@@ -20,6 +22,8 @@ const COLOR = {
   slate:
     "bg-slate-100 text-slate-700 dark:bg-slate-500/20 dark:text-slate-200",
   blue: "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-200",
+  indigo:
+    "bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-200",
   amber:
     "bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-200",
   green:
@@ -72,6 +76,41 @@ export const TASK_PRIORITY: Record<TaskPriority, StatusVisual> = {
   urgent: { variant: "outline", className: COLOR.red, label: "Urgent" },
 };
 
+// Pipeline ordering: matches the natural left-to-right flow on the deals page.
+export const DEAL_STAGE_ORDER: readonly DealStage[] = [
+  "new",
+  "qualified",
+  "proposal_sent",
+  "negotiation",
+  "won",
+  "lost",
+] as const;
+
+export const DEAL_STAGE: Record<DealStage, StatusVisual> = {
+  new: { variant: "outline", className: COLOR.slate, label: "New" },
+  qualified: { variant: "outline", className: COLOR.blue, label: "Qualified" },
+  proposal_sent: {
+    variant: "outline",
+    className: COLOR.indigo,
+    label: "Proposal sent",
+  },
+  negotiation: {
+    variant: "outline",
+    className: COLOR.amber,
+    label: "Negotiation",
+  },
+  won: { variant: "outline", className: COLOR.green, label: "Won" },
+  lost: { variant: "outline", className: COLOR.red, label: "Lost" },
+};
+
+export const DEAL_SOURCE: Record<DealSource, StatusVisual> = {
+  upwork: { variant: "outline", className: COLOR.zinc, label: "Upwork" },
+  linkedin: { variant: "outline", className: COLOR.zinc, label: "LinkedIn" },
+  referral: { variant: "outline", className: COLOR.zinc, label: "Referral" },
+  inbound: { variant: "outline", className: COLOR.zinc, label: "Inbound" },
+  other: { variant: "outline", className: COLOR.zinc, label: "Other" },
+};
+
 export const PROJECT_STATUS_OPTIONS = Object.entries(PROJECT_STATUS).map(
   ([value, v]) => ({ value: value as ProjectStatus, label: v.label })
 );
@@ -83,4 +122,11 @@ export const TASK_STATUS_OPTIONS = Object.entries(TASK_STATUS).map(
 );
 export const TASK_PRIORITY_OPTIONS = Object.entries(TASK_PRIORITY).map(
   ([value, v]) => ({ value: value as TaskPriority, label: v.label })
+);
+export const DEAL_STAGE_OPTIONS = DEAL_STAGE_ORDER.map((value) => ({
+  value,
+  label: DEAL_STAGE[value].label,
+}));
+export const DEAL_SOURCE_OPTIONS = Object.entries(DEAL_SOURCE).map(
+  ([value, v]) => ({ value: value as DealSource, label: v.label })
 );
