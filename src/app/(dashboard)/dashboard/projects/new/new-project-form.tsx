@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import {
   commitStagedAttachments,
@@ -26,16 +26,16 @@ import { PROJECT_STATUS_OPTIONS } from "@/lib/status-colors";
 
 import { createProjectDirect } from "./actions";
 
-type CompanyOption = { id: string; name: string };
 type UserOption = { id: string; name: string | null; email: string };
 type ContactOption = {
   id: string;
   name: string;
+  companyId: string | null;
   companyName: string | null;
 };
 
 const UNASSIGNED = "__unassigned__";
-const NO_CONTACT = "__none__";
+const NO_CONTACT = "";
 
 function nullIfBlank(v: string): string | null {
   const t = v.trim();
@@ -49,18 +49,17 @@ function dateToIsoOrNull(v: string): string | null {
 }
 
 export function NewProjectForm({
-  companies,
   pmCandidates,
   contacts,
 }: {
-  companies: CompanyOption[];
   pmCandidates: UserOption[];
   contacts: ContactOption[];
 }) {
   const router = useRouter();
 
   const [name, setName] = useState("");
-  const [companyId, setCompanyId] = useState("");
+  // Contact is required; the project's company is derived from the
+  // chosen contact's company_id.
   const [contactId, setContactId] = useState<string>(NO_CONTACT);
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState("planning");
@@ -76,6 +75,13 @@ export function NewProjectForm({
     failures: { name: string; reason: string }[];
   } | null>(null);
 
+  const chosenContact = useMemo(
+    () => contacts.find((c) => c.id === contactId) ?? null,
+    [contacts, contactId]
+  );
+  const derivedCompanyId = chosenContact?.companyId ?? null;
+  const derivedCompanyName = chosenContact?.companyName ?? null;
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
@@ -84,8 +90,14 @@ export function NewProjectForm({
       setError("Project name is required.");
       return;
     }
-    if (!companyId) {
-      setError("Please pick a company for this project.");
+    if (!contactId) {
+      setError("Please pick a contact for this project.");
+      return;
+    }
+    if (!derivedCompanyId) {
+      setError(
+        "This contact has no company. Add a company to the contact before creating the project."
+      );
       return;
     }
 
@@ -93,8 +105,8 @@ export function NewProjectForm({
 
     const result = await createProjectDirect({
       name,
-      companyId,
-      contactId: contactId === NO_CONTACT ? null : contactId,
+      companyId: derivedCompanyId,
+      contactId,
       description: nullIfBlank(description),
       status,
       pmId: pmId === UNASSIGNED ? null : pmId,
@@ -171,51 +183,47 @@ export function NewProjectForm({
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
       <FormSection>
-        <FormRow>
-          <Field id="company_id" label="Company" required>
-            <Select
-              value={companyId}
-              onValueChange={(v) => setCompanyId(v ?? "")}
-              disabled={pending}
-            >
-              <SelectTrigger id="company_id" className="w-full">
-                <SelectValue placeholder="Select a company" />
-              </SelectTrigger>
-              <SelectContent>
-                {companies.map((company) => (
-                  <SelectItem key={company.id} value={company.id}>
-                    {company.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
-          <Field id="contact_id" label="Contact" optional>
-            <Select
-              value={contactId}
-              onValueChange={(v) => setContactId(v ?? NO_CONTACT)}
-              disabled={pending || contacts.length === 0}
-            >
-              <SelectTrigger id="contact_id" className="w-full">
-                <SelectValue
-                  placeholder={
-                    contacts.length === 0
-                      ? "No contacts available"
-                      : "No contact"
-                  }
-                />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={NO_CONTACT}>— None —</SelectItem>
-                {contacts.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.companyName ? `${c.name} (${c.companyName})` : c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
-        </FormRow>
+        {/*
+          Contact is required; company is read-only and derived from
+          the chosen contact's company_id.
+        */}
+        <Field id="contact_id" label="Contact" required>
+          <Select
+            value={contactId}
+            onValueChange={(v) => setContactId(v ?? NO_CONTACT)}
+            disabled={pending || contacts.length === 0}
+          >
+            <SelectTrigger id="contact_id" className="w-full">
+              <SelectValue placeholder="Select a contact" />
+            </SelectTrigger>
+            <SelectContent>
+              {contacts.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.companyName ? `${c.name} (${c.companyName})` : c.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
+
+        <Field
+          id="company_derived"
+          label="Company"
+          description="Auto-filled from the contact above."
+        >
+          <div
+            id="company_derived"
+            className="flex h-10 items-center rounded-[10px] border border-line bg-blue-50/40 px-3 text-[15px] text-ink-900"
+          >
+            {contactId
+              ? derivedCompanyName ?? (
+                  <span className="text-ink-400">(no company)</span>
+                )
+              : (
+                  <span className="text-ink-400">Pick a contact first</span>
+                )}
+          </div>
+        </Field>
 
         <Field id="name" label="Name" required>
           <Input

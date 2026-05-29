@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { AttachmentsCard } from "@/components/attachments";
+import { MilestoneAttachmentsToggle } from "@/components/attachments/milestone-attachments-toggle";
 import { Page, PageHeader, Section } from "@/components/page-shell";
 import { PaymentsCard } from "@/components/payments";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -104,6 +105,30 @@ export default async function ProjectDetailPage({
     const bucket = tasksByMilestone.get(task.milestone_id) ?? [];
     bucket.push(task);
     tasksByMilestone.set(task.milestone_id, bucket);
+  }
+
+  // ── Milestone attachment counts (one batched query) ──────────────────
+  // Polymorphic attachments table — entity_type='milestone', entity_id is
+  // the milestone id. One IN(...) query, group client-side into a Map.
+  // RLS already scopes this to milestones the caller can see; if the user
+  // can read this project page they can read its milestone attachments.
+  const milestoneIds = (milestones ?? []).map((m) => m.id);
+  const attachmentCountByMilestone = new Map<string, number>();
+  if (canEdit && milestoneIds.length > 0) {
+    // Hidden from sales entirely (see toggle render below) so we skip the
+    // query for sales — saves a round-trip and matches the project-level
+    // AttachmentsCard which is also hidden for sales further down.
+    const { data: rows } = await supabase
+      .from("attachments")
+      .select("entity_id")
+      .eq("entity_type", "milestone")
+      .in("entity_id", milestoneIds);
+    for (const r of rows ?? []) {
+      attachmentCountByMilestone.set(
+        r.entity_id,
+        (attachmentCountByMilestone.get(r.entity_id) ?? 0) + 1
+      );
+    }
   }
 
   const projectStatus = PROJECT_STATUS[project.status];
@@ -243,7 +268,7 @@ export default async function ProjectDetailPage({
                   </div>
                 </CardHeader>
                 {canEdit ? (
-                <CardContent>
+                <CardContent className="flex flex-col gap-4">
                   {milestoneTasks.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
                       No tasks yet.
@@ -298,6 +323,31 @@ export default async function ProjectDetailPage({
                       })}
                     </ul>
                   )}
+
+                  {/*
+                    Per-milestone attachments toggle. Hairline-separated
+                    footer row inside the milestone card. The AttachmentsCard
+                    server component is rendered eagerly as `children` —
+                    its existing fetch happens during the project page's
+                    server render — and the client toggle just controls
+                    visibility. Hidden for sales: the project-level
+                    AttachmentsCard below is already hidden for sales for
+                    the same "no read-only mode in AttachmentsPanel" reason,
+                    so we keep the milestone toggle consistent.
+                  */}
+                  <div className="border-t border-line pt-4">
+                    <MilestoneAttachmentsToggle
+                      initialCount={
+                        attachmentCountByMilestone.get(milestone.id) ?? 0
+                      }
+                    >
+                      <AttachmentsCard
+                        entityType="milestone"
+                        entityId={milestone.id}
+                        revalidatePath={`/dashboard/projects/${id}`}
+                      />
+                    </MilestoneAttachmentsToggle>
+                  </div>
                 </CardContent>
                 ) : null}
               </Card>

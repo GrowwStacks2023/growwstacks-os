@@ -10,28 +10,22 @@ import { NewProjectForm } from "./new-project-form";
 export default async function NewProjectPage() {
   const supabase = await createClient();
 
-  const [{ data: companies }, { data: pmCandidates }, { data: contacts }] =
-    await Promise.all([
-      supabase
-        .from("companies")
-        .select("id, name")
-        .order("name", { ascending: true }),
-      supabase
-        .from("users")
-        .select("id, name, email")
-        .in("role", ["pm", "admin"])
-        .eq("is_active", true)
-        .order("name", { ascending: true }),
-      // Flat list of contacts with company name appended for context. No
-      // filtering by selected company — Raghav confirmed company and
-      // contact are independent selections.
-      supabase
-        .from("contacts")
-        .select("id, name, company:companies(name)")
-        .order("name", { ascending: true }),
-    ]);
+  // contacts: include company_id so the form can auto-fill the project's
+  // company from the chosen contact.
+  const [{ data: pmCandidates }, { data: contacts }] = await Promise.all([
+    supabase
+      .from("users")
+      .select("id, name, email")
+      .in("role", ["pm", "admin"])
+      .eq("is_active", true)
+      .order("name", { ascending: true }),
+    supabase
+      .from("contacts")
+      .select("id, name, company_id, company:companies(name)")
+      .order("name", { ascending: true }),
+  ]);
 
-  const hasCompanies = (companies?.length ?? 0) > 0;
+  const hasContacts = (contacts?.length ?? 0) > 0;
 
   return (
     <Page>
@@ -44,26 +38,27 @@ export default async function NewProjectPage() {
       />
       <FormCard
         title="New project"
-        subtitle="Spin up a delivery engagement for one of your companies. Add milestones and tasks after the project exists."
+        subtitle="Spin up a delivery engagement. Pick the primary contact — their company becomes the project's company automatically."
       >
-        {hasCompanies ? (
+        {hasContacts ? (
           <NewProjectForm
-            companies={companies ?? []}
             pmCandidates={pmCandidates ?? []}
             contacts={(contacts ?? []).map((c) => ({
               id: c.id,
               name: c.name,
+              companyId: c.company_id ?? null,
               companyName: c.company?.name ?? null,
             }))}
           />
         ) : (
           <div className="flex flex-col gap-3">
             <p className="text-[14px] text-ink-500">
-              Create a company first — every project has to belong to one.
+              Create a contact first — every project needs one. The contact&apos;s
+              company fills in automatically.
             </p>
             <div>
-              <Button render={<Link href="/dashboard/companies/new" />}>
-                Create company
+              <Button render={<Link href="/dashboard/contacts/new" />}>
+                Create contact
               </Button>
             </div>
           </div>

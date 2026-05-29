@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import {
   commitStagedAttachments,
@@ -26,16 +26,16 @@ import { DEAL_SOURCE_OPTIONS, DEAL_STAGE_OPTIONS } from "@/lib/status-colors";
 
 import { createDealDirect } from "./actions";
 
-type CompanyOption = { id: string; name: string };
 type ContactOption = {
   id: string;
   name: string;
+  companyId: string | null;
   companyName: string | null;
 };
 type UserOption = { id: string; name: string | null; email: string };
 
 const UNASSIGNED = "__unassigned__";
-const NO_CONTACT = "__none__";
+const NO_CONTACT = "";
 
 function nullIfBlank(v: string): string | null {
   const t = v.trim();
@@ -50,24 +50,23 @@ function numberOrNull(v: string): number | null {
 }
 
 export function NewDealForm({
-  companies,
   contacts,
   owners,
 }: {
-  companies: CompanyOption[];
   contacts: ContactOption[];
   owners: UserOption[];
 }) {
   const router = useRouter();
 
   const [title, setTitle] = useState("");
-  const [companyId, setCompanyId] = useState<string>("");
   const [description, setDescription] = useState("");
   const [stage, setStage] = useState("new");
   const [source, setSource] = useState("other");
   const [valueInr, setValueInr] = useState("");
   const [valueUsd, setValueUsd] = useState("");
   const [ownerId, setOwnerId] = useState<string>(UNASSIGNED);
+  // Contact is now REQUIRED. Empty string is the "nothing picked" state,
+  // not a valid submission state.
   const [contactId, setContactId] = useState<string>(NO_CONTACT);
 
   const [staged, setStaged] = useState<StagedItem[]>([]);
@@ -78,6 +77,16 @@ export function NewDealForm({
     failures: { name: string; reason: string }[];
   } | null>(null);
 
+  // Derive the company from the chosen contact. This is the auto-fill —
+  // the user doesn't pick a company; whatever the contact's company is
+  // (possibly nothing) becomes the deal's company.
+  const chosenContact = useMemo(
+    () => contacts.find((c) => c.id === contactId) ?? null,
+    [contacts, contactId]
+  );
+  const derivedCompanyId = chosenContact?.companyId ?? null;
+  const derivedCompanyName = chosenContact?.companyName ?? null;
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
@@ -86,8 +95,14 @@ export function NewDealForm({
       setError("Deal title is required.");
       return;
     }
-    if (!companyId) {
-      setError("Please pick a company for this deal.");
+    if (!contactId) {
+      setError("Please pick a contact for this deal.");
+      return;
+    }
+    if (!derivedCompanyId) {
+      setError(
+        "This contact has no company. Add a company to the contact before logging the deal."
+      );
       return;
     }
 
@@ -95,12 +110,12 @@ export function NewDealForm({
 
     const result = await createDealDirect({
       title,
-      companyId,
+      companyId: derivedCompanyId,
       description: nullIfBlank(description),
       stage,
       source,
       ownerId: ownerId === UNASSIGNED ? null : ownerId,
-      contactId: contactId === NO_CONTACT ? null : contactId,
+      contactId,
       valueInr: numberOrNull(valueInr),
       valueUsd: numberOrNull(valueUsd),
     });
@@ -168,23 +183,47 @@ export function NewDealForm({
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
       <FormSection>
-        <Field id="company_id" label="Company" required>
+        {/*
+          Contact is required and drives the company. We render contact
+          first, then a read-only company display below it that updates
+          live with the chosen contact's company.
+        */}
+        <Field id="contact_id" label="Contact" required>
           <Select
-            value={companyId}
-            onValueChange={(v) => setCompanyId(v ?? "")}
-            disabled={pending}
+            value={contactId}
+            onValueChange={(v) => setContactId(v ?? NO_CONTACT)}
+            disabled={pending || contacts.length === 0}
           >
-            <SelectTrigger id="company_id" className="w-full">
-              <SelectValue placeholder="Select a company" />
+            <SelectTrigger id="contact_id" className="w-full">
+              <SelectValue placeholder="Select a contact" />
             </SelectTrigger>
             <SelectContent>
-              {companies.map((company) => (
-                <SelectItem key={company.id} value={company.id}>
-                  {company.name}
+              {contacts.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.companyName ? `${c.name} (${c.companyName})` : c.name}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
+        </Field>
+
+        <Field
+          id="company_derived"
+          label="Company"
+          description="Auto-filled from the contact above. Change the contact to change the company."
+        >
+          <div
+            id="company_derived"
+            className="flex h-10 items-center rounded-[10px] border border-line bg-blue-50/40 px-3 text-[15px] text-ink-900"
+          >
+            {contactId
+              ? derivedCompanyName ?? (
+                  <span className="text-ink-400">(no company)</span>
+                )
+              : (
+                  <span className="text-ink-400">Pick a contact first</span>
+                )}
+          </div>
         </Field>
 
         <Field id="title" label="Title" required>
@@ -275,58 +314,31 @@ export function NewDealForm({
           </Field>
         </FormRow>
 
-        <FormRow>
-          <Field id="owner_id" label="Owner" optional>
-            <Select
-              value={ownerId}
-              onValueChange={(v) => setOwnerId(v ?? UNASSIGNED)}
-              disabled={pending || owners.length === 0}
-            >
-              <SelectTrigger id="owner_id" className="w-full">
-                <SelectValue
-                  placeholder={
-                    owners.length === 0
-                      ? "No owners available"
-                      : "Unassigned"
-                  }
-                />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={UNASSIGNED}>— Unassigned —</SelectItem>
-                {owners.map((u) => (
-                  <SelectItem key={u.id} value={u.id}>
-                    {userDisplay(u)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
-          <Field id="contact_id" label="Contact" optional>
-            <Select
-              value={contactId}
-              onValueChange={(v) => setContactId(v ?? NO_CONTACT)}
-              disabled={pending || contacts.length === 0}
-            >
-              <SelectTrigger id="contact_id" className="w-full">
-                <SelectValue
-                  placeholder={
-                    contacts.length === 0
-                      ? "No contacts available"
-                      : "None"
-                  }
-                />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={NO_CONTACT}>— None —</SelectItem>
-                {contacts.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.companyName ? `${c.name} (${c.companyName})` : c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
-        </FormRow>
+        <Field id="owner_id" label="Owner" optional>
+          <Select
+            value={ownerId}
+            onValueChange={(v) => setOwnerId(v ?? UNASSIGNED)}
+            disabled={pending || owners.length === 0}
+          >
+            <SelectTrigger id="owner_id" className="w-full">
+              <SelectValue
+                placeholder={
+                  owners.length === 0
+                    ? "No owners available"
+                    : "Unassigned"
+                }
+              />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={UNASSIGNED}>— Unassigned —</SelectItem>
+              {owners.map((u) => (
+                <SelectItem key={u.id} value={u.id}>
+                  {userDisplay(u)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
       </FormSection>
 
       <StagedAttachments

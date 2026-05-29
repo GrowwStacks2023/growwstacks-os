@@ -125,7 +125,7 @@ export function StagedAttachments({ items, onChange, disabled }: Props) {
             onClick={stageFile}
             disabled={disabled}
           >
-            Stage file
+            Upload file
           </Button>
         </div>
 
@@ -162,7 +162,7 @@ export function StagedAttachments({ items, onChange, disabled }: Props) {
             onClick={stageLink}
             disabled={disabled}
           >
-            Stage link
+            Upload link
           </Button>
         </div>
       </div>
@@ -203,7 +203,7 @@ export function StagedAttachments({ items, onChange, disabled }: Props) {
         </ul>
       ) : (
         <p className="text-xs text-muted-foreground">
-          Stage files and links here — they&apos;ll be attached after the entity is created.
+          Files and links will be added when you create this.
         </p>
       )}
     </div>

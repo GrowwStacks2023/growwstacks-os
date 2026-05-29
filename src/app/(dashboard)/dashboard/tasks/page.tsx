@@ -223,20 +223,25 @@ export default async function TasksPage({
         title="Tasks"
         description="Everything assigned to you or that you own — across projects, deals, and contacts."
         action={
-          <div className="inline-flex rounded-md border border-border bg-card p-1 text-sm">
-            <Button
-              size="sm"
-              variant={myActive ? "secondary" : "ghost"}
-              render={<Link href="/dashboard/tasks?scope=mine" />}
-            >
-              My tasks
-            </Button>
-            <Button
-              size="sm"
-              variant={!myActive ? "secondary" : "ghost"}
-              render={<Link href="/dashboard/tasks?scope=all" />}
-            >
-              All tasks
+          <div className="flex items-center gap-2">
+            <div className="inline-flex rounded-md border border-border bg-card p-1 text-sm">
+              <Button
+                size="sm"
+                variant={myActive ? "secondary" : "ghost"}
+                render={<Link href="/dashboard/tasks?scope=mine" />}
+              >
+                My tasks
+              </Button>
+              <Button
+                size="sm"
+                variant={!myActive ? "secondary" : "ghost"}
+                render={<Link href="/dashboard/tasks?scope=all" />}
+              >
+                All tasks
+              </Button>
+            </div>
+            <Button render={<Link href="/dashboard/tasks/new" />}>
+              New task
             </Button>
           </div>
         }

@@ -46,9 +46,16 @@ export async function createProjectDirect(input: {
   if (!name) {
     return { error: "Project name is required.", projectId: null };
   }
+  if (!input.contactId) {
+    return { error: "Please pick a contact for this project.", projectId: null };
+  }
   if (!input.companyId) {
+    // Auto-fill in the UI: companyId comes from the chosen contact's
+    // company. If empty, contact has no company → reject with a clear
+    // message since projects.company_id is NOT NULL.
     return {
-      error: "Please pick a company for this project.",
+      error:
+        "Contact has no company. Add a company to the contact before creating the project.",
       projectId: null,
     };
   }

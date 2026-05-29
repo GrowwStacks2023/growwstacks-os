@@ -573,6 +573,7 @@ export type Database = {
         Row: {
           amount: number
           company_id: string
+          contact_id: string | null
           created_at: string
           currency: string
           deal_id: string | null
@@ -589,6 +590,7 @@ export type Database = {
         Insert: {
           amount: number
           company_id: string
+          contact_id?: string | null
           created_at?: string
           currency?: string
           deal_id?: string | null
@@ -605,6 +607,7 @@ export type Database = {
         Update: {
           amount?: number
           company_id?: string
+          contact_id?: string | null
           created_at?: string
           currency?: string
           deal_id?: string | null
@@ -624,6 +627,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
             referencedColumns: ["id"]
           },
           {

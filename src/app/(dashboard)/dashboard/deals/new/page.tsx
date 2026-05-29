@@ -10,28 +10,23 @@ import { NewDealForm } from "./new-deal-form";
 export default async function NewDealPage() {
   const supabase = await createClient();
 
-  const [{ data: companies }, { data: contacts }, { data: owners }] =
-    await Promise.all([
-      supabase
-        .from("companies")
-        .select("id, name")
-        .order("name", { ascending: true }),
-      // Contacts are listed flat with their company name appended for context.
-      // No client-side filter by company — keeps the form simple, and the
-      // contact dropdown is optional anyway.
-      supabase
-        .from("contacts")
-        .select("id, name, company:companies(name)")
-        .order("name", { ascending: true }),
-      supabase
-        .from("users")
-        .select("id, name, email")
-        .in("role", ["sales", "admin", "pm"])
-        .eq("is_active", true)
-        .order("name", { ascending: true }),
-    ]);
+  // contacts: flat list with company id + name attached. The deal form
+  // auto-fills company from the chosen contact, so we need company_id —
+  // not just the name — to pass into the action.
+  const [{ data: contacts }, { data: owners }] = await Promise.all([
+    supabase
+      .from("contacts")
+      .select("id, name, company_id, company:companies(name)")
+      .order("name", { ascending: true }),
+    supabase
+      .from("users")
+      .select("id, name, email")
+      .in("role", ["sales", "admin", "pm"])
+      .eq("is_active", true)
+      .order("name", { ascending: true }),
+  ]);
 
-  const hasCompanies = (companies?.length ?? 0) > 0;
+  const hasContacts = (contacts?.length ?? 0) > 0;
 
   return (
     <Page>
@@ -46,12 +41,12 @@ export default async function NewDealPage() {
         title="New deal"
         subtitle="Log an opportunity in the sales pipeline. Stage starts at New — drag it on the Board view to move it forward."
       >
-        {hasCompanies ? (
+        {hasContacts ? (
           <NewDealForm
-            companies={companies ?? []}
             contacts={(contacts ?? []).map((c) => ({
               id: c.id,
               name: c.name,
+              companyId: c.company_id ?? null,
               companyName: c.company?.name ?? null,
             }))}
             owners={owners ?? []}
@@ -59,11 +54,12 @@ export default async function NewDealPage() {
         ) : (
           <div className="flex flex-col gap-3">
             <p className="text-[14px] text-ink-500">
-              Create a company first — every deal has to belong to one.
+              Create a contact first — every deal needs one. The contact&apos;s
+              company fills in automatically.
             </p>
             <div>
-              <Button render={<Link href="/dashboard/companies/new" />}>
-                Create company
+              <Button render={<Link href="/dashboard/contacts/new" />}>
+                Create contact
               </Button>
             </div>
           </div>

@@ -6,7 +6,96 @@ import { Select as SelectPrimitive } from "@base-ui/react/select"
 import { cn } from "@/lib/utils"
 import { ChevronDownIcon, CheckIcon, ChevronUpIcon } from "lucide-react"
 
-const Select = SelectPrimitive.Root
+// ─── Label-resolution context ────────────────────────────────────────────
+// Root cause of "Select shows raw value instead of label":
+//   Base UI's <Select.Value> resolves the displayed text via
+//   resolveSelectedLabel(value, items, itemToStringLabel) in
+//   node_modules/@base-ui/react/internals/resolveValueLabel.js. When the
+//   consumer doesn't pass an `items` prop AND doesn't pass a children
+//   render-function to <SelectValue>, it falls through to
+//   `stringifyAsLabel(value)` — i.e. it prints the raw value string. Base
+//   UI does NOT auto-collect labels from <Select.Item>'s JSX children.
+//
+// Fix at the primitive level (synchronous, no state, no effects):
+//   The Select wrapper walks its `children` tree during render, finds
+//   every <SelectItem> by component reference, and builds a
+//   Map<string, ReactNode> of (value → label). The map is provided via
+//   context to <SelectValue>, which supplies a default children
+//   render-function that does labels.get(String(value)) ?? String(value).
+//
+//   Because the walk runs SYNCHRONOUSLY each render and SelectItem is a
+//   thin pass-through (no state, no effects), the primitive is immune to
+//   unstable option arrays. Earlier versions used a useEffect-based
+//   register/unregister bottom-up registration; that combination
+//   (unregister + register on every children-reference change) caused
+//   an infinite "Maximum update depth exceeded" loop on forms with
+//   dynamic options (Task 21 fix replaces it).
+//
+//   First paint shows the correct label — there's no
+//   register-after-effect lag, so no flash for pre-selected values.
+//
+// Consumers can still pass `children` to <SelectValue> to override the
+// default lookup, and they can still pass `items` directly to the Base
+// UI root. This wrapper is additive.
+
+type LabelMap = ReadonlyMap<string, React.ReactNode>;
+
+const SelectLabelsContext = React.createContext<LabelMap | null>(null);
+
+function useSelectLabels(): LabelMap | null {
+  return React.useContext(SelectLabelsContext);
+}
+
+// Recursively walk the React children tree and harvest (value, children)
+// pairs from every <SelectItem>. Handles Fragments and arbitrary wrapper
+// components (SelectContent, SelectGroup, conditional <div>, etc.) by
+// recursing into each element's `children` prop. Doesn't descend through
+// SelectItem (items don't nest items).
+function collectLabels(
+  node: React.ReactNode,
+  out: Map<string, React.ReactNode>
+): void {
+  React.Children.forEach(node, (child) => {
+    if (!React.isValidElement(child)) return;
+    if (child.type === SelectItem) {
+      const itemProps = child.props as {
+        value?: unknown;
+        children?: React.ReactNode;
+      };
+      if (itemProps.value != null) {
+        out.set(String(itemProps.value), itemProps.children);
+      }
+      return;
+    }
+    // Recurse into wrappers / Fragments / native elements / etc.
+    const childChildren = (child.props as { children?: React.ReactNode })
+      .children;
+    if (childChildren != null) {
+      collectLabels(childChildren, out);
+    }
+  });
+}
+
+function Select<Value>(props: SelectPrimitive.Root.Props<Value>) {
+  // Synchronous, render-time collection. Memoized on the children
+  // reference: when consumers pass stable JSX the walk is paid once;
+  // when they pass new JSX every render the walk is cheap (O(items)
+  // for the few hundred entries any real Select carries) and produces a
+  // value-equivalent map. The output reference changes per render in
+  // the dynamic case, but that only causes <SelectValue> to re-render
+  // (cheap, no effects), never a loop.
+  const labels = React.useMemo<LabelMap>(() => {
+    const m = new Map<string, React.ReactNode>();
+    collectLabels(props.children, m);
+    return m;
+  }, [props.children]);
+
+  return (
+    <SelectLabelsContext.Provider value={labels}>
+      <SelectPrimitive.Root {...props} />
+    </SelectLabelsContext.Provider>
+  );
+}
 
 function SelectGroup({ className, ...props }: SelectPrimitive.Group.Props) {
   return (
@@ -18,14 +107,42 @@ function SelectGroup({ className, ...props }: SelectPrimitive.Group.Props) {
   )
 }
 
-function SelectValue({ className, ...props }: SelectPrimitive.Value.Props) {
+function SelectValue({
+  className,
+  children,
+  placeholder,
+  ...props
+}: SelectPrimitive.Value.Props) {
+  const labels = useSelectLabels();
+
+  // If the consumer already passed a children render-prop or a static
+  // node, defer to them — don't clobber a custom render.
+  const childrenProp =
+    children ??
+    ((value: unknown) => {
+      if (value == null || value === "") return placeholder ?? null;
+      if (Array.isArray(value)) {
+        return value.map((v, i) => (
+          <React.Fragment key={i}>
+            {i > 0 ? ", " : null}
+            {labels?.get(String(v)) ?? String(v)}
+          </React.Fragment>
+        ));
+      }
+      const looked = labels?.get(String(value));
+      return looked ?? String(value);
+    });
+
   return (
     <SelectPrimitive.Value
       data-slot="select-value"
       className={cn("flex flex-1 text-left", className)}
+      placeholder={placeholder}
       {...props}
-    />
-  )
+    >
+      {childrenProp}
+    </SelectPrimitive.Value>
+  );
 }
 
 function SelectTrigger({
@@ -108,14 +225,20 @@ function SelectLabel({
   )
 }
 
+// Thin pass-through. The Select wrapper harvests this item's label
+// synchronously via React.Children — there is no per-item effect, no
+// state, no bottom-up registration. That's what keeps the primitive
+// loop-proof when consumers pass dynamic option arrays.
 function SelectItem({
   className,
   children,
+  value,
   ...props
 }: SelectPrimitive.Item.Props) {
   return (
     <SelectPrimitive.Item
       data-slot="select-item"
+      value={value}
       className={cn(
         "relative flex w-full cursor-default items-center gap-1.5 rounded-[8px] py-1.5 pr-8 pl-2 text-[14px] text-ink-700 outline-hidden select-none focus:bg-blue-50 focus:text-blue-700 not-data-[variant=destructive]:focus:**:text-blue-700 data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
         className

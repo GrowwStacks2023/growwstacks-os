@@ -64,12 +64,34 @@ export async function recordPayment(
     return { ok: false, error: "You must be signed in." };
   }
 
+  // Derive contact_id server-side from the chosen parent (project or
+  // deal). The UI never picks a contact for a payment — the row inherits
+  // from its parent's contact_id. If the parent has no contact, the
+  // payment's contact_id stays NULL (column is nullable per 0015).
+  let derivedContactId: string | null = null;
+  if (input.projectId) {
+    const { data: project } = await supabase
+      .from("projects")
+      .select("contact_id")
+      .eq("id", input.projectId)
+      .maybeSingle();
+    derivedContactId = project?.contact_id ?? null;
+  } else if (input.dealId) {
+    const { data: deal } = await supabase
+      .from("deals")
+      .select("contact_id")
+      .eq("id", input.dealId)
+      .maybeSingle();
+    derivedContactId = deal?.contact_id ?? null;
+  }
+
   const { data: inserted, error: insertError } = await supabase
     .from("payments")
     .insert({
       project_id: input.projectId,
       deal_id: input.dealId,
       company_id: input.companyId,
+      contact_id: derivedContactId,
       amount: input.amount,
       currency: input.currency,
       kind: input.kind,

@@ -60,8 +60,20 @@ export async function createDealDirect(input: {
   if (!title) {
     return { error: "Deal title is required.", dealId: null };
   }
+  if (!input.contactId) {
+    return { error: "Please pick a contact for this deal.", dealId: null };
+  }
   if (!input.companyId) {
-    return { error: "Please pick a company for this deal.", dealId: null };
+    // companyId is derived in the UI from the chosen contact. It can be
+    // empty when the contact has no company — but the deals schema
+    // requires NOT NULL company_id, so we reject here with a clear
+    // message rather than letting Postgres bounce it with a generic
+    // not-null violation.
+    return {
+      error:
+        "Contact has no company. Add a company to the contact before logging the deal.",
+      dealId: null,
+    };
   }
 
   const stage = (DEAL_STAGES as readonly string[]).includes(input.stage)

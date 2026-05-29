@@ -27,9 +27,24 @@ import { TASK_PRIORITY_OPTIONS, TASK_STATUS_OPTIONS } from "@/lib/status-colors"
 import { createTaskDirect, type TaskContext } from "./actions";
 
 type UserOption = { id: string; name: string | null; email: string };
+type ContactOption = {
+  id: string;
+  name: string;
+  companyName: string | null;
+};
+
+// The form accepts either a fixed TaskContext (the deal/milestone/contact-
+// detail-page entry points) or a "pickContact" mode where the user picks
+// a contact inside the form itself (the standalone /dashboard/tasks/new
+// route). In pickContact mode, we build a {kind: "contact", contactId}
+// TaskContext at submit time from the picked contact.
+export type NewTaskFormContext =
+  | TaskContext
+  | { kind: "pickContact"; contacts: ContactOption[] };
 
 const UNASSIGNED = "__unassigned__";
 const NO_PM = "__no_pm__";
+const NO_CONTACT = "";
 
 function nullIfBlank(v: string): string | null {
   const t = v.trim();
@@ -63,7 +78,7 @@ export function NewTaskForm({
   // it filed under themselves.
   defaultPmId,
 }: {
-  context: TaskContext;
+  context: NewTaskFormContext;
   assignees: UserOption[];
   cancelHref: string;
   pmCandidates?: UserOption[];
@@ -71,6 +86,8 @@ export function NewTaskForm({
   defaultPmId?: string | null;
 }) {
   const router = useRouter();
+  const isPickContact = context.kind === "pickContact";
+  // PM field shows for any non-milestone path (deal, contact, pickContact).
   const showPmField = context.kind !== "milestone";
 
   const [title, setTitle] = useState("");
@@ -83,6 +100,8 @@ export function NewTaskForm({
   const [pmId, setPmId] = useState<string>(defaultPmId ?? NO_PM);
   const [estimateHours, setEstimateHours] = useState("");
   const [dueAt, setDueAt] = useState("");
+  // Standalone (pickContact) path only. Empty string = nothing picked yet.
+  const [pickedContactId, setPickedContactId] = useState<string>(NO_CONTACT);
 
   const [staged, setStaged] = useState<StagedItem[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -101,10 +120,22 @@ export function NewTaskForm({
       return;
     }
 
+    let resolvedContext: TaskContext;
+    if (isPickContact) {
+      if (!pickedContactId) {
+        setError("Please pick a contact for this task.");
+        return;
+      }
+      resolvedContext = { kind: "contact", contactId: pickedContactId };
+    } else {
+      // Narrow: anything that isn't `pickContact` is already a TaskContext.
+      resolvedContext = context as TaskContext;
+    }
+
     setPending(true);
 
     const result = await createTaskDirect({
-      context,
+      context: resolvedContext,
       title,
       description: nullIfBlank(description),
       status,
@@ -181,6 +212,42 @@ export function NewTaskForm({
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
       <FormSection>
+        {/*
+          Standalone path: render the mandatory contact picker above the
+          title. The picked contact becomes the task's contact_id (the
+          createTaskDirect kind:"contact" path). Other entry points
+          (milestone/deal/contact-detail) already know their context, so
+          this picker is hidden.
+        */}
+        {isPickContact ? (
+          <Field id="contact_id" label="Contact" required>
+            <Select
+              value={pickedContactId}
+              onValueChange={(v) => setPickedContactId(v ?? NO_CONTACT)}
+              disabled={
+                pending || (context.kind === "pickContact"
+                  ? context.contacts.length === 0
+                  : true)
+              }
+            >
+              <SelectTrigger id="contact_id" className="w-full">
+                <SelectValue placeholder="Select a contact" />
+              </SelectTrigger>
+              <SelectContent>
+                {context.kind === "pickContact"
+                  ? context.contacts.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.companyName
+                          ? `${c.name} (${c.companyName})`
+                          : c.name}
+                      </SelectItem>
+                    ))
+                  : null}
+              </SelectContent>
+            </Select>
+          </Field>
+        ) : null}
+
         <Field id="title" label="Title" required>
           <Input
             id="title"
