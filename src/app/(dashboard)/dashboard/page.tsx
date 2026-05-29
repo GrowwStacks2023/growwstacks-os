@@ -191,10 +191,108 @@ export default async function DashboardPage() {
   // eslint-disable-next-line react-hooks/purity
   const now = Date.now();
 
+  // KPI tile values — blue numbers, green positive-delta dot where there's
+  // genuinely something to celebrate.
+  const openTasksCount = openTasks.length + moreTasks;
+  const activeProjectsCount = activeProjects.length;
+  const pipelineCount = pipelineDeals.length;
+  let pipelineInr = 0;
+  let pipelineUsd = 0;
+  for (const d of pipelineDeals) {
+    pipelineInr += d.value_inr ? Number(d.value_inr) : 0;
+    pipelineUsd += d.value_usd ? Number(d.value_usd) : 0;
+  }
+
   return (
     <Page>
       {/* Dashboard root — no breadcrumbs since this IS Dashboard. */}
-      <PageHeader title="Dashboard" description={`Welcome back, ${displayName}.`} />
+      <PageHeader
+        title="Dashboard"
+        description={`Welcome back, ${displayName}.`}
+      />
+
+      {/* ── KPI tiles ─────────────────────────────────────────────────
+         Three (or four with pipeline) clean tiles using big blue numbers
+         in the display font. Active-projects tile gets a small green
+         dot — the only positive-state accent on the page. */}
+      <div
+        className={`grid grid-cols-2 gap-4 ${
+          canSeePipeline ? "lg:grid-cols-4" : "lg:grid-cols-3"
+        }`}
+      >
+        <Card>
+          <CardContent className="flex flex-col gap-1.5">
+            <div className="text-[12px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+              My open tasks
+            </div>
+            <div className="font-display text-[32px] font-semibold leading-none tracking-[-0.012em] text-brand-700">
+              {openTasksCount}
+            </div>
+            <div className="text-[13px] text-muted-foreground">
+              Across all your assignments
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex flex-col gap-1.5">
+            <div className="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+              <span
+                aria-hidden
+                className="size-2 rounded-full bg-success-500"
+              />
+              Active projects
+            </div>
+            <div className="font-display text-[32px] font-semibold leading-none tracking-[-0.012em] text-brand-700">
+              {activeProjectsCount}
+            </div>
+            <div className="text-[13px] text-muted-foreground">In flight right now</div>
+          </CardContent>
+        </Card>
+        {canSeePipeline ? (
+          <>
+            <Card>
+              <CardContent className="flex flex-col gap-1.5">
+                <div className="text-[12px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+                  Pipeline deals
+                </div>
+                <div className="font-display text-[32px] font-semibold leading-none tracking-[-0.012em] text-brand-700">
+                  {pipelineCount}
+                </div>
+                <div className="text-[13px] text-muted-foreground">
+                  Open opportunities
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="flex flex-col gap-1.5">
+                <div className="text-[12px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+                  Pipeline value
+                </div>
+                <div className="font-numeric text-[18px] font-semibold leading-tight text-brand-700">
+                  {pipelineInr > 0 ? inrFormatter.format(pipelineInr) : "—"}
+                </div>
+                <div className="font-numeric text-[14px] leading-tight text-muted-foreground">
+                  {pipelineUsd > 0 ? usdFormatter.format(pipelineUsd) : "—"}
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        ) : (
+          <Card>
+            <CardContent className="flex flex-col gap-1.5">
+              <div className="text-[12px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+                Your role
+              </div>
+              <div className="font-display text-[24px] font-semibold capitalize leading-none text-brand-700">
+                {role ?? "—"}
+              </div>
+              <div className="text-[13px] text-muted-foreground">
+                Access scoped to your role
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card>

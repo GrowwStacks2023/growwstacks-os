@@ -5,13 +5,16 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ═══════════════════════════════════════════════════════════════════════
-   GrowwStacks OS — Visual Identity
+   GrowwStacks OS — Visual Identity (v2)
    ───────────────────────────────────────────────────────────────────────
-   Direction:  editorial-craft. Refined serif headings (Fraunces) over a
-               disciplined grotesque body (Geist). Warm sienna accent.
-               Paper-warm surfaces, not cold slate. Color punctuates;
-               whitespace carries the rhythm.
-   Anti-goal:  default-shadcn / generic-AI-dashboard.
+   Direction:  Confident product, modern professional. RICH BLUE dominates
+               (sidebar, primary actions, brand, focus). GREEN punctuates
+               positive states only (won deals, received payments,
+               success). White / warm-off-white surfaces. Calm slate
+               neutrals for text + borders. Bricolage Grotesque headings
+               over Geist Sans body, at a comfortably readable scale.
+   Rules:      blue is the BRAND. green is the ACCENT. never visual equals.
+               body type at 15px+, line-height ≥1.5, plenty of whitespace.
    See DESIGN.md for the full token reference.
    ═══════════════════════════════════════════════════════════════════════ */
 
@@ -19,15 +22,12 @@
   /* ── Type ─────────────────────────────────────────────────────────── */
   --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-mono), ui-monospace, monospace;
-  /* font-display is bound to Fraunces; use `font-display` Tailwind utility
-     for editorial headings, h1/h2 page titles, the brand wordmark. */
-  --font-display: var(--font-display), Georgia, serif;
-  /* Backwards-compat alias used by older components. Maps to the new
-     editorial display so any lingering `font-heading` references pick
-     up Fraunces, not the body sans. */
-  --font-heading: var(--font-display), Georgia, serif;
+  /* `font-display` Tailwind utility uses Bricolage Grotesque. */
+  --font-display: var(--font-display), Geist, ui-sans-serif, sans-serif;
+  /* Back-compat alias for any lingering `font-heading` references. */
+  --font-heading: var(--font-display), Geist, ui-sans-serif, sans-serif;
 
-  /* ── Colors (shadcn-compatible aliases) ──────────────────────────── */
+  /* ── Colors (shadcn-compatible aliases mapped to our tokens) ─────── */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -60,22 +60,31 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  /* ── Sienna ramp (named utilities: bg-sienna-500, text-sienna-700) ── */
-  --color-sienna-50: var(--sienna-50);
-  --color-sienna-100: var(--sienna-100);
-  --color-sienna-200: var(--sienna-200);
-  --color-sienna-300: var(--sienna-300);
-  --color-sienna-400: var(--sienna-400);
-  --color-sienna-500: var(--sienna-500);
-  --color-sienna-600: var(--sienna-600);
-  --color-sienna-700: var(--sienna-700);
-  --color-sienna-800: var(--sienna-800);
-  --color-sienna-900: var(--sienna-900);
+  /* ── Brand BLUE ramp (named utilities) ──
+     Deep navy / royal blue. Hue 250 → leans cool but with weight, not
+     bright cyan. 50–200 for tints; 600 = resting primary; 700–900 deep. */
+  --color-brand-50:  var(--brand-50);
+  --color-brand-100: var(--brand-100);
+  --color-brand-200: var(--brand-200);
+  --color-brand-300: var(--brand-300);
+  --color-brand-400: var(--brand-400);
+  --color-brand-500: var(--brand-500);
+  --color-brand-600: var(--brand-600);
+  --color-brand-700: var(--brand-700);
+  --color-brand-800: var(--brand-800);
+  --color-brand-900: var(--brand-900);
 
-  /* ── Radius ladder ─────────────────────────────────────────────────
-     Anchored on --radius. Cards = --radius-lg. Buttons = --radius-md.
-     Pills/chips = --radius-2xl. We use a slightly larger anchor (10px)
-     than shadcn default to read as crafted, not crisp-corner generic. */
+  /* ── ACCENT GREEN ramp ──
+     Used SPARINGLY: status badges for "won/received/done", a small
+     positive-delta dot, success toasts. Never as primary surface or
+     button background. */
+  --color-success-50:  var(--success-50);
+  --color-success-100: var(--success-100);
+  --color-success-500: var(--success-500);
+  --color-success-600: var(--success-600);
+  --color-success-700: var(--success-700);
+
+  /* ── Radius ─────────────────────────────────────────────────────── */
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -88,136 +97,159 @@
 /* ═══════════════════════════════════════════════════════════════════════
    Token values
    ───────────────────────────────────────────────────────────────────────
-   PALETTE
-     Sienna ramp     terracotta / burnt-orange, oklch hue 28–45
-     Surfaces        warm cream (paper), warm near-black text
-     Borders         warm pale grey (low chroma, hue 55–60)
-     Destructive     punchier red (hue 22) so it doesn't smear into sienna
-     Status palette  green / amber / red kept SEMANTIC; never re-tinted
+   HIERARCHY
+     Brand BLUE     dominant — sidebar primary, primary buttons, focus,
+                    big numbers, links, brand mark
+     Accent GREEN   punctuates positives only — never large surfaces
+     Off-white      page background (warm tint, paper not clinical)
+     White          card surfaces (lift off the page bg)
+     Slate          text + borders, calm neutral
+     Amber / Red    warning + danger badges only
 
-   ACCENT USAGE — emphasis only (Refactoring UI rule)
-     · Primary buttons (sienna-600 bg, white label, ~5:1 contrast)
-     · Active sidebar link (sienna-50 tint + sienna-700 text + sienna-600 icon)
-     · Focus ring (sienna-500) so keyboard nav is unmistakable
-     · Brand mark in sidebar
-     · Big numbers on dashboard tiles
-     · Underline of editorial section-heading rules
-     Nothing else gets sienna by default.
+   Contrast targets
+     Primary button (brand-600 bg + white label) ≈ 5.5:1
+     Body text on bg ≈ 11:1
+     Muted text on bg ≈ 4.6:1
    ═══════════════════════════════════════════════════════════════════════ */
 
 :root {
-  /* Sienna ramp. 600 = resting primary; 500 = focus/accent; 50–200 = tints. */
-  --sienna-50:  oklch(0.972 0.014 45);
-  --sienna-100: oklch(0.940 0.032 42);
-  --sienna-200: oklch(0.875 0.068 40);
-  --sienna-300: oklch(0.785 0.115 38);
-  --sienna-400: oklch(0.675 0.155 36);
-  --sienna-500: oklch(0.605 0.170 34);
-  --sienna-600: oklch(0.525 0.165 33);
-  --sienna-700: oklch(0.445 0.145 32);
-  --sienna-800: oklch(0.365 0.115 30);
-  --sienna-900: oklch(0.290 0.082 28);
+  /* ── BLUE ramp ── deep cobalt / royal, oklch hue 248–255. */
+  --brand-50:  oklch(0.972 0.014 250);
+  --brand-100: oklch(0.940 0.030 250);
+  --brand-200: oklch(0.878 0.060 250);
+  --brand-300: oklch(0.780 0.105 251);
+  --brand-400: oklch(0.660 0.155 254);
+  --brand-500: oklch(0.555 0.190 256);
+  --brand-600: oklch(0.475 0.200 258);   /* resting primary */
+  --brand-700: oklch(0.400 0.180 259);
+  --brand-800: oklch(0.325 0.150 260);
+  --brand-900: oklch(0.255 0.105 260);
 
-  /* Warm-paper surfaces. The body bg is very slightly warmer than cards,
-     so cards "lift" off the page. */
-  --background: oklch(0.983 0.005 60);
-  --foreground: oklch(0.165 0.014 55);
+  /* ── GREEN ramp ── positive accent. */
+  --success-50:  oklch(0.965 0.030 155);
+  --success-100: oklch(0.930 0.060 155);
+  --success-500: oklch(0.660 0.150 152);
+  --success-600: oklch(0.575 0.155 152);
+  --success-700: oklch(0.490 0.135 152);
+
+  /* ── Surfaces — warm-off-white page, pure white cards ──
+     Subtle warm tint (hue 80, very low chroma) keeps the page from
+     looking clinical white. Cards stay pure white so they lift off. */
+  --background: oklch(0.985 0.004 80);
+  --foreground: oklch(0.175 0.020 255);    /* near-black with a hint of brand */
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.165 0.014 55);
+  --card-foreground: oklch(0.175 0.020 255);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.165 0.014 55);
+  --popover-foreground: oklch(0.175 0.020 255);
 
-  --primary: var(--sienna-600);
-  --primary-foreground: oklch(0.985 0.005 60);
+  /* ── Primary = brand-600 (resting). hover bumps to brand-700. ── */
+  --primary: var(--brand-600);
+  --primary-foreground: oklch(0.985 0.004 80);
 
-  --secondary: oklch(0.958 0.010 60);
-  --secondary-foreground: oklch(0.220 0.014 50);
-  --muted: oklch(0.958 0.010 60);
-  --muted-foreground: oklch(0.475 0.015 55);
-  --accent: oklch(0.952 0.014 55);
-  --accent-foreground: oklch(0.220 0.014 50);
+  --secondary: oklch(0.960 0.008 250);
+  --secondary-foreground: oklch(0.215 0.030 255);
+  --muted: oklch(0.960 0.008 250);
+  --muted-foreground: oklch(0.495 0.018 250);
+  --accent: oklch(0.955 0.014 250);
+  --accent-foreground: oklch(0.215 0.030 255);
 
   --destructive: oklch(0.585 0.235 22);
 
-  --border: oklch(0.905 0.012 55);
-  --input: oklch(0.905 0.012 55);
-  --ring: var(--sienna-500);
+  --border: oklch(0.905 0.012 250);
+  --input: oklch(0.905 0.012 250);
+  --ring: var(--brand-500);
 
-  --chart-1: var(--sienna-500);
-  --chart-2: oklch(0.760 0.130 78);
-  --chart-3: oklch(0.620 0.105 145);
-  --chart-4: oklch(0.660 0.095 235);
-  --chart-5: oklch(0.580 0.140 310);
+  /* Charts — coordinated blues + green + neutrals. */
+  --chart-1: var(--brand-500);
+  --chart-2: var(--success-500);
+  --chart-3: oklch(0.660 0.130 220);
+  --chart-4: oklch(0.620 0.140 285);
+  --chart-5: oklch(0.580 0.110 230);
 
-  /* Radius — 10px anchor reads as crafted, slightly larger than the
-     6–8px shadcn default. Cards 10px, buttons 8px, inputs 8px. */
   --radius: 0.625rem;
 
-  /* Sidebar surface — a hair warmer + darker than --background so the
-     edge between sidebar and page is visible without a hard line. */
-  --sidebar: oklch(0.972 0.007 58);
-  --sidebar-foreground: oklch(0.210 0.014 50);
-  --sidebar-primary: var(--sienna-600);
-  --sidebar-primary-foreground: oklch(0.985 0.005 60);
-  --sidebar-accent: var(--sienna-50);
-  --sidebar-accent-foreground: var(--sienna-800);
-  --sidebar-border: oklch(0.910 0.012 55);
-  --sidebar-ring: var(--sienna-500);
+  /* ── Sidebar = the brand surface. Deep blue, light text. ──
+     Per the brief: rich blue dominates. Putting the sidebar in brand
+     blue makes the identity unmistakable the moment you open the app. */
+  --sidebar: var(--brand-900);
+  --sidebar-foreground: oklch(0.910 0.020 250);
+  --sidebar-primary: oklch(1 0 0);
+  --sidebar-primary-foreground: var(--brand-900);
+  --sidebar-accent: oklch(1 0 0 / 8%);            /* hover/active tint */
+  --sidebar-accent-foreground: oklch(1 0 0);
+  --sidebar-border: oklch(1 0 0 / 8%);
+  --sidebar-ring: var(--brand-300);
 }
 
 .dark {
-  --sienna-50: oklch(0.235 0.045 32);
-  --sienna-100: oklch(0.290 0.065 33);
-  --sienna-200: oklch(0.350 0.090 34);
-  --sienna-300: oklch(0.420 0.115 34);
-  --sienna-400: oklch(0.510 0.145 33);
-  --sienna-500: oklch(0.610 0.165 33);
-  --sienna-600: oklch(0.685 0.160 33);
-  --sienna-700: oklch(0.760 0.140 34);
-  --sienna-800: oklch(0.840 0.110 36);
-  --sienna-900: oklch(0.910 0.075 40);
+  --brand-50:  oklch(0.235 0.040 258);
+  --brand-100: oklch(0.290 0.060 258);
+  --brand-200: oklch(0.350 0.090 258);
+  --brand-300: oklch(0.420 0.125 258);
+  --brand-400: oklch(0.510 0.165 258);
+  --brand-500: oklch(0.605 0.195 258);
+  --brand-600: oklch(0.680 0.190 258);
+  --brand-700: oklch(0.760 0.170 258);
+  --brand-800: oklch(0.840 0.140 260);
+  --brand-900: oklch(0.910 0.095 262);
 
-  --background: oklch(0.165 0.015 50);
-  --foreground: oklch(0.960 0.010 55);
-  --card: oklch(0.215 0.015 50);
-  --card-foreground: oklch(0.960 0.010 55);
-  --popover: oklch(0.215 0.015 50);
-  --popover-foreground: oklch(0.960 0.010 55);
+  --success-50:  oklch(0.250 0.045 152);
+  --success-100: oklch(0.310 0.080 152);
+  --success-500: oklch(0.660 0.150 152);
+  --success-600: oklch(0.730 0.150 152);
+  --success-700: oklch(0.795 0.135 152);
 
-  --primary: var(--sienna-500);
-  --primary-foreground: oklch(0.180 0.012 50);
+  --background: oklch(0.155 0.020 255);
+  --foreground: oklch(0.965 0.010 250);
+  --card: oklch(0.215 0.022 256);
+  --card-foreground: oklch(0.965 0.010 250);
+  --popover: oklch(0.215 0.022 256);
+  --popover-foreground: oklch(0.965 0.010 250);
 
-  --secondary: oklch(0.265 0.014 50);
-  --secondary-foreground: oklch(0.960 0.010 55);
-  --muted: oklch(0.265 0.014 50);
-  --muted-foreground: oklch(0.730 0.012 55);
-  --accent: oklch(0.290 0.022 50);
-  --accent-foreground: oklch(0.960 0.010 55);
+  --primary: var(--brand-500);
+  --primary-foreground: oklch(0.180 0.020 255);
+
+  --secondary: oklch(0.270 0.020 256);
+  --secondary-foreground: oklch(0.965 0.010 250);
+  --muted: oklch(0.270 0.020 256);
+  --muted-foreground: oklch(0.735 0.018 250);
+  --accent: oklch(0.295 0.030 256);
+  --accent-foreground: oklch(0.965 0.010 250);
 
   --destructive: oklch(0.700 0.190 22);
 
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: var(--sienna-400);
+  --ring: var(--brand-400);
 
-  --chart-1: var(--sienna-400);
-  --chart-2: oklch(0.770 0.140 78);
-  --chart-3: oklch(0.620 0.115 145);
-  --chart-4: oklch(0.680 0.105 235);
-  --chart-5: oklch(0.620 0.150 310);
+  --chart-1: var(--brand-400);
+  --chart-2: var(--success-500);
+  --chart-3: oklch(0.660 0.130 220);
+  --chart-4: oklch(0.620 0.140 285);
+  --chart-5: oklch(0.580 0.110 230);
 
-  --sidebar: oklch(0.205 0.014 50);
-  --sidebar-foreground: oklch(0.960 0.010 55);
-  --sidebar-primary: var(--sienna-500);
-  --sidebar-primary-foreground: oklch(0.180 0.012 50);
-  --sidebar-accent: oklch(0.310 0.045 33);
-  --sidebar-accent-foreground: oklch(0.960 0.010 55);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: var(--sienna-400);
+  --sidebar: oklch(0.180 0.030 256);
+  --sidebar-foreground: oklch(0.910 0.020 250);
+  --sidebar-primary: var(--brand-500);
+  --sidebar-primary-foreground: oklch(0.985 0.004 80);
+  --sidebar-accent: oklch(1 0 0 / 6%);
+  --sidebar-accent-foreground: oklch(0.965 0.010 250);
+  --sidebar-border: oklch(1 0 0 / 8%);
+  --sidebar-ring: var(--brand-400);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
    Base layer + type scale
+   ───────────────────────────────────────────────────────────────────────
+   TYPE SCALE  (resolves "fonts too small")
+     body         16px / line-height 1.55 / Geist Sans
+     small        14px
+     caption      12px
+     h1 / display 32px (sm: 28px), weight 600
+     h2           24px, weight 600
+     h3           20px, weight 600
+     h4           17px, weight 600
+   All headings in Bricolage Grotesque with -0.012em tracking.
    ═══════════════════════════════════════════════════════════════════════ */
 
 @layer base {
@@ -226,89 +258,61 @@
   }
   body {
     @apply bg-background text-foreground font-sans;
-    /* Body copy size — 15px is a deliberate notch up from the 14px shadcn
-       default; reads better in dense screens (CRM tables, forms) and
-       gives the type more presence. */
-    font-size: 15px;
+    font-size: 16px;
     line-height: 1.55;
     font-feature-settings: "cv11", "ss01", "ss03";
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
 
-  /* Editorial headings — Fraunces. Slightly tightened tracking and a
-     touch heavier weight than the default 400 to give them presence
-     against the body grotesque. The opsz axis is tuned by font-size. */
   h1, h2, h3, h4 {
     @apply font-display text-foreground;
-    font-feature-settings: "ss01", "ss02";
     letter-spacing: -0.012em;
   }
-  h1 { font-weight: 500; line-height: 1.1;  font-variation-settings: "opsz" 36, "SOFT" 50; }
-  h2 { font-weight: 500; line-height: 1.15; font-variation-settings: "opsz" 24, "SOFT" 40; }
-  h3 { font-weight: 600; line-height: 1.25; font-variation-settings: "opsz" 18, "SOFT" 30; }
-  h4 { font-weight: 600; line-height: 1.3;  font-variation-settings: "opsz" 14, "SOFT" 20; }
+  h1 { font-weight: 600; line-height: 1.1;  font-variation-settings: "opsz" 36, "wdth" 100; }
+  h2 { font-weight: 600; line-height: 1.18; font-variation-settings: "opsz" 24, "wdth" 100; }
+  h3 { font-weight: 600; line-height: 1.25; font-variation-settings: "opsz" 20, "wdth" 100; }
+  h4 { font-weight: 600; line-height: 1.3;  font-variation-settings: "opsz" 16, "wdth" 100; }
 
-  /* Numbers in tabular contexts (amounts, totals) should align. Use
-     `font-mono` utility or this class for big numeric displays. */
+  /* Tabular numerics for amounts / IDs. */
   .font-numeric {
     font-family: var(--font-mono);
     font-feature-settings: "tnum", "lnum";
   }
-
-  /* Subtle textured warmth on the page surface — a very faint radial
-     gradient pinned top-right. Reads as paper, not a flat tile. Sits
-     under everything; pointer-events off. */
-  body::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 0;
-    background:
-      radial-gradient(
-        1200px 800px at 100% 0%,
-        color-mix(in oklch, var(--sienna-100) 28%, transparent) 0%,
-        transparent 60%
-      );
-  }
-  /* Bring page content above the background sheen. */
-  body > * { position: relative; z-index: 1; }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   Component-level affordances
+   Reusable surface affordances
    ═══════════════════════════════════════════════════════════════════════ */
 
 @layer components {
-  /* Editorial section underline — a 2px sienna rule pinned under a
-     heading. Used by PageHeader title and Section title. Adds editorial
-     warmth without colour-flooding the heading text itself. */
-  .accent-rule {
-    @apply relative;
-  }
-  .accent-rule::after {
-    content: "";
-    position: absolute;
-    left: 0;
-    bottom: -10px;
-    width: 32px;
-    height: 2px;
-    background: var(--sienna-600);
-    border-radius: 999px;
+  /* Subtle blue glow under primary buttons — reads as a stamped action,
+     not a flat tile. */
+  .btn-primary-shadow {
+    box-shadow:
+      inset 0 1px 0 0 color-mix(in oklch, white 22%, transparent),
+      0 1px 0 0 color-mix(in oklch, var(--brand-900) 35%, transparent),
+      0 1px 2px 0 color-mix(in oklch, var(--brand-900) 25%, transparent);
   }
 
-  /* Card override — slightly larger radius (10px ≈ --radius), one
-     hairline border, very subtle shadow that reads as lift not drop. */
+  /* Card override — clean white surface, hairline border, very soft
+     shadow that reads as "lift". */
   [data-slot="card"] {
-    box-shadow: 0 1px 0 0 oklch(0.93 0.012 55 / 50%);
+    box-shadow:
+      0 1px 2px 0 color-mix(in oklch, var(--brand-900) 4%, transparent),
+      0 1px 0 0 color-mix(in oklch, var(--brand-900) 3%, transparent);
   }
 
-  /* Input affordance — slightly larger touch target than default
-     shadcn, consistent height across all form fields. */
   [data-slot="input"],
   [data-slot="textarea"],
   [data-slot="select-trigger"] {
     background-color: var(--card);
+  }
+
+  /* Sidebar link link affordance — keyboard focus reads through the
+     dark surface. */
+  .sidebar-focus-ring:focus-visible {
+    outline: 2px solid var(--brand-300);
+    outline-offset: 2px;
   }
 }

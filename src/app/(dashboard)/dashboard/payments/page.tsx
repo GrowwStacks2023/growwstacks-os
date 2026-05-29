@@ -1,23 +1,11 @@
 import Link from "next/link";
 
 import { Page, PageHeader } from "@/components/page-shell";
+import { ResponsiveList, type ResponsiveRow } from "@/components/responsive-list";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-} from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   PAYMENT_KIND,
   PAYMENT_STATUS,
@@ -154,33 +142,39 @@ export default async function PaymentsPage() {
       />
 
       {/*
-        Currency split deliberately on two lines. We never collapse INR +
-        USD into a single number — they're different units.
+        Currency split: two stacked stat blocks. Received uses the success
+        green dot to telegraph "money in the bank"; Expected stays neutral.
       */}
-      <Card>
-        <CardContent className="grid grid-cols-1 gap-3 py-4 sm:grid-cols-2">
-          <div>
-            <div className="text-xs uppercase tracking-wide text-muted-foreground">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <Card>
+          <CardContent className="flex flex-col gap-1.5">
+            <div className="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+              <span
+                aria-hidden
+                className="size-2 rounded-full bg-success-500"
+              />
               Received
             </div>
-            <div className="text-sm">
+            <div className="font-numeric text-[18px] font-semibold text-foreground">
               {inrFormatter.format(receivedInr)}{" "}
               <span className="text-muted-foreground">/</span>{" "}
               {usdFormatter.format(receivedUsd)}
             </div>
-          </div>
-          <div>
-            <div className="text-xs uppercase tracking-wide text-muted-foreground">
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex flex-col gap-1.5">
+            <div className="text-[12px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
               Expected
             </div>
-            <div className="text-sm">
+            <div className="font-numeric text-[18px] font-semibold text-foreground">
               {inrFormatter.format(expectedInr)}{" "}
               <span className="text-muted-foreground">/</span>{" "}
               {usdFormatter.format(expectedUsd)}
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
 
       {error ? (
         <Alert variant="destructive">
@@ -190,95 +184,91 @@ export default async function PaymentsPage() {
         </Alert>
       ) : null}
 
-      <Card>
-        {rows.length === 0 ? (
-          <CardHeader>
-            <CardDescription>
-              No payments yet. Use <span className="font-medium">Record payment</span> above
-              to log the first one.
-            </CardDescription>
-          </CardHeader>
-        ) : (
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="pl-4">Amount</TableHead>
-                  <TableHead>Kind</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Context</TableHead>
-                  <TableHead>Company</TableHead>
-                  <TableHead>Received</TableHead>
-                  <TableHead className="pr-4">Reference</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rows.map((p) => {
-                  const kind = PAYMENT_KIND[p.kind];
-                  const status = PAYMENT_STATUS[p.status];
-                  const contextHref = p.project_id
-                    ? `/dashboard/projects/${p.project_id}`
-                    : p.deal_id
-                      ? `/dashboard/deals/${p.deal_id}`
-                      : null;
-                  const contextLabel = p.project_id
-                    ? `Project: ${projectsById.get(p.project_id) ?? "—"}`
-                    : p.deal_id
-                      ? `Deal: ${dealsById.get(p.deal_id) ?? "—"}`
-                      : "—";
-                  const companyName = companiesById.get(p.company_id);
-                  return (
-                    <TableRow key={p.id}>
-                      <TableCell className="pl-4 font-medium">
-                        {fmtMoney(Number(p.amount), p.currency)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={kind.variant} className={kind.className}>
-                          {kind.label}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={status.variant} className={status.className}>
-                          {status.label}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {contextHref ? (
-                          <Link href={contextHref} className="hover:underline">
-                            {contextLabel}
-                          </Link>
-                        ) : (
-                          contextLabel
-                        )}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {companyName ? (
-                          <Link
-                            href={`/dashboard/companies/${p.company_id}`}
-                            className="hover:underline"
-                          >
-                            {companyName}
-                          </Link>
-                        ) : (
-                          "—"
-                        )}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {p.received_at
-                          ? dateFormatter.format(new Date(p.received_at))
-                          : "—"}
-                      </TableCell>
-                      <TableCell className="pr-4 text-muted-foreground">
-                        {p.reference ?? "—"}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </CardContent>
-        )}
-      </Card>
+      <ResponsiveList
+        columns={[
+          { key: "amount", label: "Amount", primary: true, widthHint: "18%" },
+          { key: "kind", label: "Kind" },
+          { key: "status", label: "Status" },
+          { key: "context", label: "Context" },
+          { key: "company", label: "Company" },
+          { key: "received", label: "Received" },
+          { key: "reference", label: "Reference" },
+        ]}
+        rows={rows.map<ResponsiveRow>((p) => {
+          const kind = PAYMENT_KIND[p.kind];
+          const status = PAYMENT_STATUS[p.status];
+          const contextHref = p.project_id
+            ? `/dashboard/projects/${p.project_id}`
+            : p.deal_id
+              ? `/dashboard/deals/${p.deal_id}`
+              : null;
+          const contextLabel = p.project_id
+            ? `Project: ${projectsById.get(p.project_id) ?? "—"}`
+            : p.deal_id
+              ? `Deal: ${dealsById.get(p.deal_id) ?? "—"}`
+              : "—";
+          const companyName = companiesById.get(p.company_id);
+          return {
+            id: p.id,
+            cells: {
+              amount: (
+                <span className="font-numeric font-semibold text-foreground">
+                  {fmtMoney(Number(p.amount), p.currency)}
+                </span>
+              ),
+              kind: (
+                <Badge variant={kind.variant} className={kind.className}>
+                  {kind.label}
+                </Badge>
+              ),
+              status: (
+                <Badge variant={status.variant} className={status.className}>
+                  {status.label}
+                </Badge>
+              ),
+              context: contextHref ? (
+                <Link
+                  href={contextHref}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  {contextLabel}
+                </Link>
+              ) : (
+                <span className="text-muted-foreground">{contextLabel}</span>
+              ),
+              company: companyName ? (
+                <Link
+                  href={`/dashboard/companies/${p.company_id}`}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  {companyName}
+                </Link>
+              ) : (
+                <span className="text-muted-foreground">—</span>
+              ),
+              received: (
+                <span className="text-muted-foreground">
+                  {p.received_at
+                    ? dateFormatter.format(new Date(p.received_at))
+                    : "—"}
+                </span>
+              ),
+              reference: (
+                <span className="text-muted-foreground">
+                  {p.reference ?? "—"}
+                </span>
+              ),
+            },
+          };
+        })}
+        empty={
+          <p>
+            No payments yet. Use{" "}
+            <span className="font-medium">Record payment</span> above to log
+            the first one.
+          </p>
+        }
+      />
     </Page>
   );
 }

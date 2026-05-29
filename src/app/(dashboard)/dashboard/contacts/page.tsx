@@ -1,24 +1,10 @@
 import Link from "next/link";
 
 import { Page, PageHeader } from "@/components/page-shell";
+import { ResponsiveList, type ResponsiveRow } from "@/components/responsive-list";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function ContactsPage() {
@@ -29,6 +15,38 @@ export default async function ContactsPage() {
       "id, name, email, phone, whatsapp, is_primary, company:companies(name)"
     )
     .order("created_at", { ascending: false });
+
+  const rows: ResponsiveRow[] = (contacts ?? []).map((c) => ({
+    id: c.id,
+    href: `/dashboard/contacts/${c.id}`,
+    cells: {
+      name: (
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/dashboard/contacts/${c.id}`}
+            className="text-foreground hover:text-brand-700"
+          >
+            {c.name}
+          </Link>
+          {c.is_primary ? (
+            <Badge variant="secondary" className="text-[11px]">
+              Primary
+            </Badge>
+          ) : null}
+        </div>
+      ),
+      company: (
+        <span className="text-muted-foreground">
+          {c.company?.name ?? "—"}
+        </span>
+      ),
+      email: <span className="text-muted-foreground">{c.email ?? "—"}</span>,
+      phone: <span className="text-muted-foreground">{c.phone ?? "—"}</span>,
+      whatsapp: (
+        <span className="text-muted-foreground">{c.whatsapp ?? "—"}</span>
+      ),
+    },
+  }));
 
   return (
     <Page>
@@ -54,69 +72,24 @@ export default async function ContactsPage() {
         </Alert>
       ) : null}
 
-      <Card>
-        {!contacts || contacts.length === 0 ? (
-          <>
-            <CardHeader>
-              <CardTitle className="text-base">No contacts yet</CardTitle>
-              <CardDescription>
-                No contacts yet. Create your first one.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button render={<Link href="/dashboard/contacts/new" />}>
-                Create contact
-              </Button>
-            </CardContent>
-          </>
-        ) : (
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="pl-4">Name</TableHead>
-                  <TableHead>Company</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Phone</TableHead>
-                  <TableHead>WhatsApp</TableHead>
-                  <TableHead className="pr-4">Primary</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {contacts.map((contact) => (
-                  <TableRow key={contact.id}>
-                    <TableCell className="pl-4 font-medium">
-                      <Link
-                        href={`/dashboard/contacts/${contact.id}`}
-                        className="hover:underline"
-                      >
-                        {contact.name}
-                      </Link>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {contact.company?.name ?? "—"}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {contact.email ?? "—"}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {contact.phone ?? "—"}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {contact.whatsapp ?? "—"}
-                    </TableCell>
-                    <TableCell className="pr-4">
-                      {contact.is_primary ? (
-                        <Badge variant="secondary">Primary</Badge>
-                      ) : null}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        )}
-      </Card>
+      <ResponsiveList
+        columns={[
+          { key: "name", label: "Name", primary: true, widthHint: "28%" },
+          { key: "company", label: "Company" },
+          { key: "email", label: "Email" },
+          { key: "phone", label: "Phone" },
+          { key: "whatsapp", label: "WhatsApp" },
+        ]}
+        rows={rows}
+        empty={
+          <div className="flex flex-col items-center gap-3">
+            <p className="text-foreground/80">No contacts yet.</p>
+            <Button render={<Link href="/dashboard/contacts/new" />}>
+              Add your first contact
+            </Button>
+          </div>
+        }
+      />
     </Page>
   );
 }

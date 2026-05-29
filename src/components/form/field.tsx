@@ -2,13 +2,12 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
 // One field = label above input, optional description below. Used for
-// every text-ish field across every create form. The visual rhythm comes
-// from a single consistent gap (10px) between label and control, and a
-// 6px gap between control and description.
+// every text-ish field across every create form. Vertical rhythm:
+// 8px between label and input, 8px between input and description.
 //
-// Pass `required` only when the underlying input is genuinely required —
-// the asterisk gives sales/dev a quick visual scan of what they have to
-// fill in.
+// Labels are 14px / 500 / foreground (NOT muted) so they read clearly
+// at the new body size. Required → small blue asterisk. Optional → tiny
+// muted pill so users can skim what's mandatory.
 export function Field({
   id,
   label,
@@ -32,32 +31,32 @@ export function Field({
     <div className={cn("flex flex-col gap-2", className)}>
       <Label
         htmlFor={id}
-        className="text-[13px] font-medium tracking-tight text-foreground/85"
+        className="text-[14px] font-medium tracking-[-0.005em] text-foreground"
       >
         <span>{label}</span>
         {required ? (
           <span
             aria-hidden
-            className="ml-1 text-sienna-600"
+            className="ml-1 text-brand-600"
             title="Required"
           >
             *
           </span>
         ) : null}
         {optional ? (
-          <span className="ml-1 text-[11px] font-normal text-muted-foreground">
-            (optional)
+          <span className="ml-1.5 rounded-full bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+            Optional
           </span>
         ) : null}
       </Label>
       {children}
       {description && !error ? (
-        <p className="text-xs leading-snug text-muted-foreground">
+        <p className="text-[13px] leading-snug text-muted-foreground">
           {description}
         </p>
       ) : null}
       {error ? (
-        <p className="text-xs leading-snug text-destructive">{error}</p>
+        <p className="text-[13px] leading-snug text-destructive">{error}</p>
       ) : null}
     </div>
   );

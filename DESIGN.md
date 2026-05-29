@@ -1,132 +1,152 @@
-# GrowwStacks OS — Design system
+# GrowwStacks OS — Design system (v2)
 
-Short reference. The full source of truth is `src/app/globals.css`.
+Short reference. Full source of truth is `src/app/globals.css`.
 
 ## Direction
 
-**Editorial-craft.** Refined serif headings (Fraunces) over a disciplined
-grotesque body (Geist Sans). Warm sienna accent against paper-warm surfaces.
-Whitespace carries the rhythm; colour punctuates.
+**Confident product, modern professional.** Rich blue is the brand and
+dominates the identity. Green is an accent used sparingly on positive
+states. Warm-off-white page background, pure white card surfaces, calm
+slate neutrals for text and borders.
 
-**Anti-goal:** default-shadcn / generic-AI-dashboard.
+Bricolage Grotesque headings over Geist Sans body, at a comfortably
+readable scale. Generous whitespace. Color carries hierarchy.
+
+**Hard rule:** blue dominates; green punctuates. They are NEVER visual
+equals on the same surface.
 
 ## Typography
 
-| Role | Family | Weight | Size | Tracking | Where |
-|------|--------|--------|------|----------|-------|
-| Display / H1 | Fraunces | 500 | 28–32px | -0.012em | Page titles |
-| H2 | Fraunces | 500 | 22–24px | -0.012em | Section titles |
-| H3 | Fraunces | 600 | 17–18px | -0.012em | Card titles |
-| Body | Geist Sans | 400/500 | 15px | 0 | Everything else |
-| Small | Geist Sans | 400 | 13px | 0 | Captions, hints |
-| Numeric | Geist Mono | 500 | varies | 0 | Tabular numbers, IDs |
+Loaded via `next/font/google` in `src/app/layout.tsx`. CSS variables
+exposed: `--font-sans`, `--font-display`, `--font-mono`.
 
-- Fonts loaded via `next/font` in `src/app/layout.tsx`.
-- Variables exposed: `--font-display`, `--font-sans`, `--font-mono` plus
-  legacy `--font-heading` aliased to display for back-compat.
-- Use `font-display` Tailwind utility for editorial headings; the `h1`/
-  `h2`/`h3` selectors in `@layer base` apply the editorial styling
-  automatically.
-- Fraunces variable axes used: `opsz` (optical size, scaled with the
-  heading), `SOFT` (softens the serifs at smaller sizes for warmth).
-- Body font-feature-settings turn on Geist's stylistic alternates
-  (`ss01`, `ss03`) and the rounded `cv11` for a friendlier "a".
+| Role | Family | Weight | Size | Line height | Tracking |
+|------|--------|-------:|-----:|-----:|---------:|
+| Display / H1 | Bricolage Grotesque | 600 | 28–32px | 1.1 | -0.012em |
+| H2 | Bricolage Grotesque | 600 | 24px | 1.18 | -0.012em |
+| H3 / card title | Bricolage Grotesque | 600 | 20px | 1.25 | -0.012em |
+| H4 / section heading | Bricolage Grotesque | 600 | 17px | 1.3 | -0.012em |
+| Body | Geist Sans | 400/500 | **16px** | 1.55 | 0 |
+| Small | Geist Sans | 400/500 | 14px | 1.5 | 0 |
+| Caption / eyebrow | Geist Sans | 600 | 12px | 1.4 | 0.06em |
+| Numeric | Geist Mono | 500 | varies | – | – |
+
+- Body bumped from 14 → **16px** (this directly addresses "fonts too
+  small"). Use Tailwind `text-base` (= 16px) for body, `text-sm` (14px)
+  for secondary copy, `text-xs` (12px) for captions/eyebrows.
+- All headings auto-pick Bricolage via the `h1`/`h2`/`h3`/`h4` selectors
+  in `@layer base`. For non-heading display text use the `font-display`
+  utility.
+- Bricolage variable axes used: `opsz` (optical size, scaled with the
+  heading), `wdth` (kept at 100 — neutral width).
 
 ## Palette
 
-### Sienna ramp — the accent
+### Brand BLUE — dominant
 
-Terracotta / burnt-orange. Hue 28–45, oklch space.
+Deep cobalt / royal. oklch hue 248–260.
 
 | Token | Use |
 |-------|-----|
-| `sienna-50` / `sienna-100` | Tints — active sidebar background, inline highlights |
-| `sienna-200` / `sienna-300` | Subtle accents, badge tints |
-| `sienna-500` | **Focus ring**, brand mark |
-| `sienna-600` | **Primary button** background. ~5:1 against white label. |
-| `sienna-700` | Sidebar active text, large-number emphasis on dashboard |
-| `sienna-800` / `sienna-900` | Deep emphasis, rare |
+| `brand-50` / `brand-100` | Tints — section backgrounds, sparingly |
+| `brand-200` / `brand-300` | Sidebar borders, subtle accents |
+| `brand-500` | **Focus ring**, link color, key emphasis |
+| `brand-600` | **Primary button** background. ~5.5:1 against white |
+| `brand-700` | Primary hover, big-number display, brand wordmark |
+| `brand-800` / `brand-900` | **Sidebar surface** (full blue chrome), deep emphasis |
 
-### Surfaces — warm paper, not cold slate
+### Accent GREEN — positives only
 
-- `--background` warm cream (oklch 0.983)
-- `--card` pure white — cards "lift" off the page
-- `--foreground` warm near-black (hue 55, not slate-blue)
-- `--border` warm pale grey
-- Subtle radial sienna sheen pinned top-right via `body::before` —
-  reads as paper, not a flat tile. Pointer-events off.
+| Token | Use |
+|-------|-----|
+| `success-50` / `success-100` | Success badge backgrounds |
+| `success-500` / `success-600` | Won-deal / received-payment / done badges, positive-delta dot |
+| `success-700` | Dark mode success text |
 
-### Status — semantic, untouched
+**Don't:** primary button background, headline color, large surface
+fill. Green stays small and meaningful.
 
-Status badges (`src/lib/status-colors.ts`) use the Tailwind named palette:
+### Surfaces
 
-- Neutral / idle → `stone` (warm grey — not `slate` / `zinc`)
+- `--background` warm off-white (oklch 0.985 hue 80) — paper, not clinical
+- `--card` pure white — cards lift off the page
+- `--foreground` deep ink with a hint of brand blue
+- `--border` cool pale slate
+
+### Status — semantic, intentional
+
+Status badges (`src/lib/status-colors.ts`) use Tailwind named colors so
+the meaning carries:
+
+- Neutral / idle → `slate`
 - In progress / qualified / proposal → `blue` / `indigo`
-- On hold / expected / negotiation / high-priority → `amber`
-- Done / received / won → `green`
+- On hold / expected / negotiation / high priority → `amber`
+- Done / received / won → `green` (the success accent — only here, not
+  on plain "saved" toasts)
 - Blocked / lost / refunded → `red`
 - Review → `purple`
 
-**Never re-tint these to match the brand**, they carry meaning.
-
 ## Spacing
 
-Tailwind's 4-based scale, used consistently:
+Tailwind's 4-based scale, used consistently.
 
-- Page outer padding: `px-8 py-8`
-- Section gap (top-of-page rhythm): `gap-8`
-- Card inner padding: `p-6` (header) / `p-6` (content)
-- Form field gap: `gap-5` between fields, `gap-2.5` between label + input
+- Page outer padding: `px-8 py-10`
+- Page max-width: `max-w-6xl`
+- Section gap (between page-header + sections): `gap-10`
+- Card inner padding: `p-6`
+- Form field gap: `gap-5` between fields, `gap-2` between label and input
 - Cluster gap (badge row, button row): `gap-2`
 
 ## Radius / shadow
 
-- Cards: `--radius-lg` (10px). One hairline border + a single near-flat
-  shadow (`0 1px 0` in a warm tone) — reads as "lift", not "drop".
-- Buttons: `--radius-md` (8px).
-- Inputs: `--radius-md` (8px). Same height across `Input`, `Textarea`,
-  `SelectTrigger`.
+- Cards: `--radius-lg` (10px). Hairline border + a soft 0–1px shadow
+  that reads as "lift" not "drop".
+- Buttons: `--radius-md` (8px). Primary button gets the `.btn-primary-shadow` inset highlight + outer drop.
+- Inputs / selects / textareas: `--radius-md` (8px). Same h-10 across
+  all of them.
 - Pills/badges: `--radius-2xl` (18px).
 
-## Accent usage — RULES
+## Where each color appears
 
-The accent (sienna) appears in these places ONLY:
-
-1. Primary action buttons (`Button` default variant).
-2. Active sidebar link (sienna-50 background + sienna-700 text + sienna-600 icon).
-3. Focus ring on inputs and interactive elements.
-4. Brand mark in the sidebar header.
-5. Large numbers on dashboard tiles.
-6. The editorial 2px underline beneath section headings (`.accent-rule`).
-
-**Nothing else gets sienna by default.** Color punctuates; if you find
-yourself adding `bg-sienna-*` somewhere not on this list, push back.
+| Surface | Color |
+|---------|-------|
+| Page background | warm off-white |
+| Card | pure white |
+| Sidebar (the whole chrome) | brand-900 (deep navy) |
+| Sidebar active link | brand-700 background + white text + white left mark |
+| Primary button | brand-600 → hover brand-700 |
+| Secondary button | white card with hairline + foreground text |
+| Page title | foreground deep ink |
+| Link / focus ring | brand-500 |
+| Big numbers on dashboard tiles | brand-700 |
+| "Won" deal badge / "Received" payment / "Done" task | success-* via status-colors |
+| Positive-delta dot | success-500 |
 
 ## Shared primitives
 
-Layout:
-- `src/components/page-shell/page.tsx` — `<Page>` outer container, `<Section>` labelled chunk
-- `src/components/page-shell/page-header.tsx` — `<PageHeader>` (title + description + meta + action + breadcrumbs)
-- `src/components/page-shell/breadcrumbs.tsx` — persistent back-trail
-- `src/components/page-shell/page-loader.tsx` — branded sienna spinner
+Layout (`src/components/page-shell/`):
+- `<Page>` outer container, `<Section>` labelled chunk
+- `<PageHeader>` title + description + meta + action + breadcrumbs
+- `<Breadcrumbs>` persistent trail
+- `<PageLoader>` branded loader
 
-Forms:
-- `src/components/form/field.tsx` — `<Field>` label + input wrapper, consistent vertical rhythm
-- `src/components/form/form-row.tsx` — `<FormRow>` two-column grid that collapses on narrow screens
-- `src/components/form/form-section.tsx` — `<FormSection>` labelled group with optional description
-- `src/components/form/form-actions.tsx` — `<FormActions>` button row pinned bottom-right
+Forms (`src/components/form/`):
+- `<Field>` label + input wrapper
+- `<FormRow>` two/three column grid (collapses on narrow)
+- `<FormSection>` labelled group
+- `<FormActions>` button row
 
-Every create form (companies, contacts, deals, projects, milestones,
-tasks, payments) consumes the same primitives. If you add a new form,
-use them — don't roll your own grid.
+Lists (`src/components/responsive-list/`):
+- `<ResponsiveList>` table on wide, card stack on narrow. One mechanism
+  used by EVERY list page (companies, contacts, projects, tasks, payments).
 
 ## Don'ts
 
-- Don't use generic system fonts. The whole point of Fraunces + Geist is
-  voice. If you set `font-family: sans-serif` you've broken the identity.
-- Don't sprinkle sienna across status badges. They're semantic.
-- Don't introduce a second card style. Refactor the existing one if you
-  need a variant; talk to Manish first.
-- Don't add custom button colors. The `Button` component covers it.
-- Don't reintroduce cold greys (`slate`, `zinc`, `gray`). Use `stone` if
-  you need a Tailwind named neutral.
+- **Don't** put blue and green at equal weight on a page. Blue is the
+  brand; green is the accent.
+- **Don't** use green for "saved" toasts, "primary button", or large
+  surface fills. It's the won/received/done indicator only.
+- **Don't** introduce a second card style. Refactor the shared one.
+- **Don't** sprinkle brand-* across status badges. Status is semantic.
+- **Don't** make body smaller than 16px. The previous round was rejected
+  for being too small; we hold the line.

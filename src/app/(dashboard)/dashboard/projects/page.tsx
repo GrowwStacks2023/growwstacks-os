@@ -1,24 +1,10 @@
 import Link from "next/link";
 
 import { Page, PageHeader } from "@/components/page-shell";
+import { ResponsiveList, type ResponsiveRow } from "@/components/responsive-list";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { canEditProjectArea } from "@/lib/access";
 import { getCurrentRole } from "@/lib/access-server";
 import { userDisplay } from "@/lib/display";
@@ -56,7 +42,9 @@ export default async function ProjectsPage() {
       .from("milestones")
       .select("project_id, status")
       .in("project_id", projectIds);
-    milestoneStats = new Map(projectIds.map((id) => [id, { total: 0, completed: 0 }]));
+    milestoneStats = new Map(
+      projectIds.map((id) => [id, { total: 0, completed: 0 }])
+    );
     for (const m of milestoneRows ?? []) {
       const bucket = milestoneStats.get(m.project_id);
       if (!bucket) continue;
@@ -64,6 +52,51 @@ export default async function ProjectsPage() {
       if (m.status === "completed") bucket.completed += 1;
     }
   }
+
+  const rows: ResponsiveRow[] = (projects ?? []).map((project) => {
+    const status = PROJECT_STATUS[project.status];
+    const pmDisplay = userDisplay(project.pm, "—");
+    const stats = milestoneStats.get(project.id);
+    const progressLabel =
+      stats && stats.total > 0
+        ? `${stats.completed} / ${stats.total} milestones`
+        : "—";
+    return {
+      id: project.id,
+      href: `/dashboard/projects/${project.id}`,
+      cells: {
+        name: (
+          <Link
+            href={`/dashboard/projects/${project.id}`}
+            className="text-foreground hover:text-brand-700"
+          >
+            {project.name}
+          </Link>
+        ),
+        company: (
+          <span className="text-muted-foreground">
+            {project.company?.name ?? "—"}
+          </span>
+        ),
+        status: (
+          <Badge variant={status.variant} className={status.className}>
+            {status.label}
+          </Badge>
+        ),
+        progress: (
+          <span className="text-muted-foreground">{progressLabel}</span>
+        ),
+        pm: <span className="text-muted-foreground">{pmDisplay}</span>,
+        target_end: (
+          <span className="text-muted-foreground">
+            {project.expected_end_at
+              ? dateFormatter.format(new Date(project.expected_end_at))
+              : "—"}
+          </span>
+        ),
+      },
+    };
+  });
 
   return (
     <Page>
@@ -95,88 +128,29 @@ export default async function ProjectsPage() {
         </Alert>
       ) : null}
 
-      <Card>
-        {!projects || projects.length === 0 ? (
-          <>
-            <CardHeader>
-              <CardTitle className="text-base">No projects yet</CardTitle>
-              <CardDescription>
-                {canEdit
-                  ? "No projects yet. Create your first one."
-                  : "No projects to show yet."}
-              </CardDescription>
-            </CardHeader>
+      <ResponsiveList
+        columns={[
+          { key: "name", label: "Name", primary: true, widthHint: "26%" },
+          { key: "company", label: "Company" },
+          { key: "status", label: "Status" },
+          { key: "progress", label: "Progress" },
+          { key: "pm", label: "PM" },
+          { key: "target_end", label: "Target end" },
+        ]}
+        rows={rows}
+        empty={
+          <div className="flex flex-col items-center gap-3">
+            <p className="text-foreground/80">
+              {canEdit ? "No projects yet." : "No projects to show yet."}
+            </p>
             {canEdit ? (
-              <CardContent>
-                <Button render={<Link href="/dashboard/projects/new" />}>
-                  Create project
-                </Button>
-              </CardContent>
+              <Button render={<Link href="/dashboard/projects/new" />}>
+                Spin up your first project
+              </Button>
             ) : null}
-          </>
-        ) : (
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="pl-4">Name</TableHead>
-                  <TableHead>Company</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Progress</TableHead>
-                  <TableHead>PM</TableHead>
-                  <TableHead className="pr-4">Target end</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {projects.map((project) => {
-                  const status = PROJECT_STATUS[project.status];
-                  const pmDisplay = userDisplay(project.pm, "—");
-                  const stats = milestoneStats.get(project.id);
-                  const progressLabel = stats && stats.total > 0
-                    ? `${stats.completed} / ${stats.total} milestones`
-                    : "—";
-                  return (
-                    <TableRow key={project.id}>
-                      <TableCell className="pl-4 font-medium">
-                        <Link
-                          href={`/dashboard/projects/${project.id}`}
-                          className="hover:underline"
-                        >
-                          {project.name}
-                        </Link>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {project.company?.name ?? "—"}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={status.variant}
-                          className={status.className}
-                        >
-                          {status.label}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {progressLabel}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {pmDisplay}
-                      </TableCell>
-                      <TableCell className="pr-4 text-muted-foreground">
-                        {project.expected_end_at
-                          ? dateFormatter.format(
-                              new Date(project.expected_end_at)
-                            )
-                          : "—"}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </CardContent>
-        )}
-      </Card>
+          </div>
+        }
+      />
     </Page>
   );
 }

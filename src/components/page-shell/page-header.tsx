@@ -2,19 +2,16 @@ import { cn } from "@/lib/utils";
 
 import { Breadcrumbs, type Crumb } from "./breadcrumbs";
 
-// The shared top-of-page header used across EVERY dashboard route. Per
-// "Don't Make Me Think" + Refactoring UI:
-//   - Title left in the display font (Fraunces), description below it.
-//   - Primary action ALWAYS top-right in the same spot — so muscle memory
-//     transfers between pages.
-//   - Breadcrumbs above the title so the user can navigate up one level
-//     without scanning the page.
-//   - A subtle 2px sienna rule (accent-rule) under the title gives the
-//     editorial mark on every page.
+// Shared top-of-page header on every dashboard route. Per "Don't Make
+// Me Think" + Refactoring UI:
+//   - Title left in Bricolage Grotesque at 28–32px, generous weight.
+//   - Primary action ALWAYS top-right.
+//   - Breadcrumbs above the title for orientation + one-tap back-nav.
+//   - Description below the title at the new body scale (~16px).
 //
-// Optional `meta` slot to the right of the title for status/role chips
-// on detail pages (e.g. a project's status badge). Sits next to the
-// title rather than competing with the primary action.
+// Optional `meta` slot to the right of the title for status badges on
+// detail pages (e.g. project status). Sits next to the title rather
+// than competing with the primary action on the far right.
 export function PageHeader({
   title,
   description,
@@ -36,9 +33,9 @@ export function PageHeader({
         <Breadcrumbs trail={breadcrumbs} />
       ) : null}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="flex min-w-0 flex-col gap-3">
+        <div className="flex min-w-0 flex-col gap-2.5">
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="accent-rule font-display text-[28px] sm:text-[32px] font-medium leading-[1.1] tracking-[-0.012em] text-foreground">
+            <h1 className="font-display text-[28px] sm:text-[32px] font-semibold leading-[1.1] tracking-[-0.012em] text-foreground">
               {title}
             </h1>
             {meta ? (
@@ -48,7 +45,7 @@ export function PageHeader({
             ) : null}
           </div>
           {description ? (
-            <p className="max-w-2xl text-[14px] leading-relaxed text-muted-foreground">
+            <p className="max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
               {description}
             </p>
           ) : null}

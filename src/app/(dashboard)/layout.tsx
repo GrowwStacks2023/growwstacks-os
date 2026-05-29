@@ -40,15 +40,21 @@ export default async function DashboardLayout({
       <Sidebar role={role} />
       <div className="flex min-w-0 flex-1 flex-col">
         {/*
-          Top utility strip — kept small and low-contrast so the page
-          title is what reads first. The hairline under it gives the
-          page a top edge without a heavy admin-bar feel.
+          Top utility strip — a clean white bar with a hairline rule,
+          name + sign-out on the right. The page title is what reads
+          first under it.
         */}
-        <header className="border-b border-border/70 bg-card/50 backdrop-blur-sm">
-          <div className="flex items-center justify-end gap-3 px-8 py-3">
-            <span className="text-[12px] font-medium text-muted-foreground">
-              {displayName}
-            </span>
+        <header className="border-b border-border bg-card">
+          <div className="flex items-center justify-end gap-4 px-8 py-3.5">
+            <div className="flex items-center gap-2 rounded-full bg-muted px-3 py-1">
+              <span
+                aria-hidden
+                className="size-2 rounded-full bg-success-500"
+              />
+              <span className="text-[13px] font-medium text-foreground/85">
+                {displayName}
+              </span>
+            </div>
             <SignOutButton />
           </div>
         </header>

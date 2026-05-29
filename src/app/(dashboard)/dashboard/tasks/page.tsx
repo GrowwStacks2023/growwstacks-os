@@ -1,23 +1,10 @@
 import Link from "next/link";
 
 import { Page, PageHeader } from "@/components/page-shell";
+import { ResponsiveList, type ResponsiveRow } from "@/components/responsive-list";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-} from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { userDisplay } from "@/lib/display";
 import { TASK_PRIORITY, TASK_STATUS } from "@/lib/status-colors";
 import { createClient } from "@/lib/supabase/server";
@@ -180,6 +167,52 @@ export default async function TasksPage({
 
   const myActive = scope === "mine";
 
+  const listRows: ResponsiveRow[] = rows.map((t) => {
+    const status = TASK_STATUS[t.status];
+    const priority = TASK_PRIORITY[t.priority];
+    const ctx = describeContext(t);
+    return {
+      id: t.id,
+      href: `/dashboard/tasks/${t.id}`,
+      cells: {
+        title: (
+          <Link
+            href={`/dashboard/tasks/${t.id}`}
+            className="text-foreground hover:text-brand-700"
+          >
+            {t.title}
+          </Link>
+        ),
+        context: ctx.href ? (
+          <Link
+            href={ctx.href}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            {ctx.label}
+          </Link>
+        ) : (
+          <span className="text-muted-foreground">{ctx.label}</span>
+        ),
+        assignee: (
+          <span className="text-muted-foreground">
+            {userDisplay(t.assignee, "Unassigned")}
+          </span>
+        ),
+        priority: (
+          <Badge variant={priority.variant} className={priority.className}>
+            {priority.label}
+          </Badge>
+        ),
+        status: (
+          <Badge variant={status.variant} className={status.className}>
+            {status.label}
+          </Badge>
+        ),
+        due: <span className="text-muted-foreground">{formatDate(t.due_at)}</span>,
+      },
+    };
+  });
+
   return (
     <Page>
       <PageHeader
@@ -190,7 +223,7 @@ export default async function TasksPage({
         title="Tasks"
         description="Everything assigned to you or that you own — across projects, deals, and contacts."
         action={
-          <div className="inline-flex rounded-md border bg-card p-0.5 text-sm">
+          <div className="inline-flex rounded-md border border-border bg-card p-1 text-sm">
             <Button
               size="sm"
               variant={myActive ? "secondary" : "ghost"}
@@ -217,82 +250,22 @@ export default async function TasksPage({
         </Alert>
       ) : null}
 
-      <Card>
-        {rows.length === 0 ? (
-          <CardHeader>
-            <CardDescription>
-              {myActive
-                ? "No tasks assigned to you yet. Add a task to a project, deal, or contact."
-                : "No tasks visible to you yet."}
-            </CardDescription>
-          </CardHeader>
-        ) : (
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="pl-4">Title</TableHead>
-                  <TableHead>Context</TableHead>
-                  <TableHead>Assignee</TableHead>
-                  <TableHead>Priority</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="pr-4">Due</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rows.map((t) => {
-                  const status = TASK_STATUS[t.status];
-                  const priority = TASK_PRIORITY[t.priority];
-                  const ctx = describeContext(t);
-                  return (
-                    <TableRow key={t.id}>
-                      <TableCell className="pl-4 font-medium">
-                        <Link
-                          href={`/dashboard/tasks/${t.id}`}
-                          className="hover:underline"
-                        >
-                          {t.title}
-                        </Link>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {ctx.href ? (
-                          <Link href={ctx.href} className="hover:underline">
-                            {ctx.label}
-                          </Link>
-                        ) : (
-                          ctx.label
-                        )}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {userDisplay(t.assignee, "Unassigned")}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={priority.variant}
-                          className={priority.className}
-                        >
-                          {priority.label}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={status.variant}
-                          className={status.className}
-                        >
-                          {status.label}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="pr-4 text-muted-foreground">
-                        {formatDate(t.due_at)}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </CardContent>
-        )}
-      </Card>
+      <ResponsiveList
+        columns={[
+          { key: "title", label: "Title", primary: true, widthHint: "28%" },
+          { key: "context", label: "Context" },
+          { key: "assignee", label: "Assignee" },
+          { key: "priority", label: "Priority" },
+          { key: "status", label: "Status" },
+          { key: "due", label: "Due" },
+        ]}
+        rows={listRows}
+        empty={
+          myActive
+            ? "No tasks assigned to you yet. Add a task to a project, deal, or contact."
+            : "No tasks visible to you yet."
+        }
+      />
     </Page>
   );
 }

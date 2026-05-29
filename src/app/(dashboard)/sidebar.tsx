@@ -16,9 +16,6 @@ import { usePathname } from "next/navigation";
 import { canAccess, NAV_LINKS, type NavLink, type Role } from "@/lib/access";
 import { cn } from "@/lib/utils";
 
-// Resolve the string icon name from NAV_LINKS into a Lucide component.
-// Kept here rather than in access.ts so that module stays JSX-free (and
-// can be imported anywhere, including server-only code).
 const ICONS: Record<NavLink["icon"], LucideIcon> = {
   Home,
   Building2,
@@ -29,10 +26,12 @@ const ICONS: Record<NavLink["icon"], LucideIcon> = {
   CheckSquare,
 };
 
-// Role threaded down from the dashboard layout (server component reads
-// it from public.users). Sidebar stays a client component because it
-// needs usePathname for active-state highlighting; the gating is just
-// canAccess() filtering the NAV_LINKS list.
+// Role threaded down from the dashboard layout. Sidebar is a client
+// component so usePathname can drive the active-state highlight; the
+// gating is just canAccess() filtering NAV_LINKS.
+//
+// The sidebar is the BRAND. It's the deep navy chrome that anchors the
+// product identity the moment the app opens.
 export function Sidebar({ role }: { role: Role | null }) {
   const pathname = usePathname();
   const visibleLinks = NAV_LINKS.filter((link) =>
@@ -40,40 +39,41 @@ export function Sidebar({ role }: { role: Role | null }) {
   );
 
   return (
-    <aside className="flex w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar">
-      {/* Brand block — editorial wordmark in Fraunces with a sienna
-          monogram tile. The tile has a hairline inner highlight to read
-          as a stamp rather than a flat swatch. */}
+    <aside className="flex w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground">
+      {/*
+        Brand block — white G monogram tile on the deep-blue sidebar.
+        The tile sits on a thin highlight ring for crispness against the
+        deep navy. Wordmark in Bricolage Grotesque.
+      */}
       <div className="px-5 py-6">
-        <Link href="/dashboard" className="flex items-center gap-2.5 group">
+        <Link href="/dashboard" className="group flex items-center gap-2.5">
           <span
             aria-hidden
-            className="grid size-7 place-items-center rounded-md bg-sienna-600 text-sienna-50 shadow-[inset_0_1px_0_0_color-mix(in_oklch,white_30%,transparent),0_1px_0_0_color-mix(in_oklch,var(--sienna-900)_40%,transparent)] transition-transform group-hover:-rotate-[3deg]"
+            className="grid size-8 place-items-center rounded-md bg-white text-brand-700 ring-1 ring-white/20 shadow-[0_1px_2px_0_rgba(0,0,0,0.25)] transition-transform group-hover:scale-105"
           >
-            <span className="font-display text-[15px] font-semibold leading-none">
+            <span className="font-display text-[17px] font-bold leading-none">
               G
             </span>
           </span>
           <span className="flex flex-col leading-tight">
-            <span className="font-display text-[15px] font-semibold tracking-tight text-foreground">
+            <span className="font-display text-[16px] font-semibold tracking-tight text-white">
               GrowwStacks
             </span>
-            <span className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground/80">
-              OS
+            <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/55">
+              Operating System
             </span>
           </span>
         </Link>
       </div>
 
-      {/* Nav cluster label — gives the column structure that an editorial
-          workspace would have. Tiny uppercase eyebrow above the list. */}
+      {/* Workspace eyebrow */}
       <div className="px-5 pb-2">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/70">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/45">
           Workspace
         </span>
       </div>
 
-      <nav className="flex flex-1 flex-col gap-0.5 px-3 pb-4">
+      <nav className="flex flex-1 flex-col gap-1 px-3 pb-4">
         {visibleLinks.map((link) => {
           const Icon = ICONS[link.icon];
           const isActive =
@@ -81,32 +81,32 @@ export function Sidebar({ role }: { role: Role | null }) {
               ? pathname === link.href
               : pathname === link.href || pathname.startsWith(`${link.href}/`);
 
-          // Active link: sienna-tinted pill with a 2px sienna mark on the
-          // left edge — reads like a bookmark, not a plain selected state.
+          // Active link: a brand-700 pill with a white left mark — reads
+          // as "you are here" against the deep navy chrome.
           return (
             <Link
               key={link.href}
               href={link.href}
               aria-current={isActive ? "page" : undefined}
               className={cn(
-                "group relative flex items-center gap-2.5 rounded-md px-3 py-2 text-[13px] font-medium transition-colors",
+                "group sidebar-focus-ring relative flex items-center gap-3 rounded-md px-3 py-2.5 text-[14px] font-medium transition-colors",
                 isActive
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                  : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                  ? "bg-brand-700 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)]"
+                  : "text-white/70 hover:bg-white/[0.06] hover:text-white"
               )}
             >
               {isActive ? (
                 <span
                   aria-hidden
-                  className="absolute left-0 top-1/2 h-5 -translate-y-1/2 w-[2px] rounded-full bg-sienna-600"
+                  className="absolute left-0 top-1/2 h-6 -translate-y-1/2 w-[3px] rounded-r-full bg-white"
                 />
               ) : null}
               <Icon
                 className={cn(
-                  "size-[15px] shrink-0",
+                  "size-[17px] shrink-0",
                   isActive
-                    ? "text-sienna-700"
-                    : "text-muted-foreground/80 group-hover:text-foreground"
+                    ? "text-white"
+                    : "text-white/60 group-hover:text-white"
                 )}
               />
               <span>{link.label}</span>
@@ -115,10 +115,10 @@ export function Sidebar({ role }: { role: Role | null }) {
         })}
       </nav>
 
-      {/* Bottom rule — a tiny editorial signoff. Pure decoration. */}
-      <div className="border-t border-sidebar-border/70 px-5 py-3">
-        <p className="text-[10px] text-muted-foreground/70">
-          <span className="font-display italic">v1</span> · internal
+      {/* Bottom footer */}
+      <div className="border-t border-white/10 px-5 py-3.5">
+        <p className="text-[11px] text-white/45">
+          GrowwStacks <span className="text-white/60">·</span> Internal v1
         </p>
       </div>
     </aside>
