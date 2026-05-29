@@ -166,3 +166,25 @@ export const PAYMENT_KIND_OPTIONS = (
 export const PAYMENT_STATUS_OPTIONS = (
   Object.entries(PAYMENT_STATUS) as [PaymentStatus, StatusVisual][]
 ).map(([value, v]) => ({ value, label: v.label }));
+
+
+// User role badge map. Surfaced on the /dashboard/users admin page.
+export const USER_ROLE: Record<
+  "admin" | "sales" | "pm" | "developer" | "client",
+  StatusVisual
+> = {
+  admin:     { variant: "outline", className: COLOR.indigo, label: "Admin" },
+  sales:     { variant: "outline", className: COLOR.blue, label: "Sales" },
+  pm:        { variant: "outline", className: COLOR.amber, label: "PM" },
+  developer: { variant: "outline", className: COLOR.green, label: "Developer" },
+  client:    { variant: "outline", className: COLOR.zinc, label: "Client" },
+};
+
+export const USER_ROLE_OPTIONS = (
+  Object.entries(USER_ROLE) as [keyof typeof USER_ROLE, StatusVisual][]
+).map(([value, v]) => ({ value, label: v.label }));
+
+export const API_SCOPE: Record<"read" | "read_write", StatusVisual> = {
+  read: { variant: "outline", className: COLOR.blue, label: "Read" },
+  read_write: { variant: "outline", className: COLOR.indigo, label: "Read + Write" },
+};

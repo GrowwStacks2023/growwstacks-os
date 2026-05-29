@@ -25,6 +25,8 @@ export type Section =
   | "projects"
   | "tasks"
   | "payments"
+  | "users"
+  | "integrations"
   | "portal";
 
 // Per-section role lists. Keep these in sync with the matrix in the task
@@ -45,6 +47,9 @@ export const SECTION_ROLES: Record<Section, ReadonlyArray<Role>> = {
   projects: ["admin", "sales", "pm", "developer"],
   tasks: ["admin", "sales", "pm", "developer"],
   payments: ["admin", "sales", "pm"],
+  // Admin surfaces — invite users, manage API keys for external integrations.
+  users: ["admin"],
+  integrations: ["admin"],
   portal: ["client"],
 };
 
@@ -98,7 +103,9 @@ export type NavLink = {
     | "Handshake"
     | "FolderKanban"
     | "CreditCard"
-    | "CheckSquare";
+    | "CheckSquare"
+    | "UserCog"
+    | "Plug";
 };
 
 export const NAV_LINKS: ReadonlyArray<NavLink> = [
@@ -138,5 +145,18 @@ export const NAV_LINKS: ReadonlyArray<NavLink> = [
     label: "Tasks",
     section: "tasks",
     icon: "CheckSquare",
+  },
+  // Admin-only — sidebar hides for everyone else via canAccess().
+  {
+    href: "/dashboard/users",
+    label: "Users",
+    section: "users",
+    icon: "UserCog",
+  },
+  {
+    href: "/dashboard/integrations",
+    label: "Integrations",
+    section: "integrations",
+    icon: "Plug",
   },
 ];

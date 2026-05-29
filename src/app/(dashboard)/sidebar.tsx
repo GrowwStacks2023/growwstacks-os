@@ -7,6 +7,8 @@ import {
   FolderKanban,
   Handshake,
   Home,
+  Plug,
+  UserCog,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -24,6 +26,8 @@ const ICONS: Record<NavLink["icon"], LucideIcon> = {
   FolderKanban,
   CreditCard,
   CheckSquare,
+  UserCog,
+  Plug,
 };
 
 // Spec v3 sidebar:

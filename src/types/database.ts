@@ -55,6 +55,91 @@ export type Database = {
           },
         ]
       }
+      api_audit_log: {
+        Row: {
+          api_key_id: string | null
+          at: string
+          id: number
+          ip: string | null
+          method: string
+          path: string
+          status: number
+          user_agent: string | null
+        }
+        Insert: {
+          api_key_id?: string | null
+          at?: string
+          id?: number
+          ip?: string | null
+          method: string
+          path: string
+          status: number
+          user_agent?: string | null
+        }
+        Update: {
+          api_key_id?: string | null
+          at?: string
+          id?: number
+          ip?: string | null
+          method?: string
+          path?: string
+          status?: number
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_audit_log_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: false
+            referencedRelation: "api_keys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      api_keys: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          key_hash: string
+          key_prefix: string
+          last_used_at: string | null
+          name: string
+          revoked_at: string | null
+          scope: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          key_hash: string
+          key_prefix: string
+          last_used_at?: string | null
+          name: string
+          revoked_at?: string | null
+          scope: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          key_hash?: string
+          key_prefix?: string
+          last_used_at?: string | null
+          name?: string
+          revoked_at?: string | null
+          scope?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_keys_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       attachments: {
         Row: {
           created_at: string
