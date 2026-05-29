@@ -1,5 +1,5 @@
-import { Page, PageHeader } from "@/components/page-shell";
-import { Card, CardContent } from "@/components/ui/card";
+import { Breadcrumbs, Page } from "@/components/page-shell";
+import { FormCard } from "@/components/form";
 import { createClient } from "@/lib/supabase/server";
 
 import { NewContactForm } from "./new-contact-form";
@@ -13,20 +13,19 @@ export default async function NewContactPage() {
 
   return (
     <Page>
-      <PageHeader
-        breadcrumbs={[
+      <Breadcrumbs
+        trail={[
           { label: "Dashboard", href: "/dashboard" },
           { label: "Contacts", href: "/dashboard/contacts" },
           { label: "New contact" },
         ]}
-        title="New contact"
-        description="A contact can stand alone or belong to a company."
       />
-      <Card className="w-full max-w-[640px]">
-        <CardContent className="pt-6">
-          <NewContactForm companies={companies ?? []} />
-        </CardContent>
-      </Card>
+      <FormCard
+        title="New contact"
+        subtitle="A contact can stand alone or belong to a company. You can attach files and notes after creating."
+      >
+        <NewContactForm companies={companies ?? []} />
+      </FormCard>
     </Page>
   );
 }

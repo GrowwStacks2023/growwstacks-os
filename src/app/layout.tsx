@@ -1,36 +1,38 @@
 import type { Metadata } from "next";
-import { Bricolage_Grotesque, Geist, Geist_Mono } from "next/font/google";
+import {
+  JetBrains_Mono,
+  Plus_Jakarta_Sans,
+  Space_Grotesk,
+} from "next/font/google";
 
 import "./globals.css";
 
-// ─── Type system ───────────────────────────────────────────────────────
-// Geist Sans          → body, UI labels, table data. Modern grotesque
-//                       with refined personality. NOT Inter.
-// Bricolage Grotesque → display + headings. Variable axis (wdth+opsz)
-//                       gives bold, geometric, slightly soft titles —
-//                       contemporary, confident, never default.
-// Geist Mono          → tabular numerics (amounts, IDs). Never body.
-// ─────────────────────────────────────────────────────────────────────
+// ─── Type system per the GrowwStacks OS v3 spec ────────────────────────
+// Space Grotesk     → display + headings (h1–h4, page titles, card titles,
+//                     KPI values), letter-spacing -0.02em
+// Plus Jakarta Sans → body, UI labels, buttons, table cells,
+//                     letter-spacing -0.01em
+// JetBrains Mono    → numerics, IDs, amounts, references; tabular figures
+// ───────────────────────────────────────────────────────────────────────
 
-const geistSans = Geist({
+const jakarta = Plus_Jakarta_Sans({
   variable: "--font-sans",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
   display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-mono",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const bricolage = Bricolage_Grotesque({
+const spaceGrotesk = Space_Grotesk({
   variable: "--font-display",
   subsets: ["latin"],
-  // Variable font — weight omitted to pull the full axis. We tune
-  // weight + opsz + wdth per-heading in globals.css via
-  // font-variation-settings.
-  axes: ["opsz", "wdth"],
+  weight: ["500", "600", "700"],
+  display: "swap",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-mono",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
   display: "swap",
 });
 
@@ -48,7 +50,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${bricolage.variable} h-full antialiased`}
+      className={`${jakarta.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>

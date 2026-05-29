@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Page, PageHeader } from "@/components/page-shell";
 import { ResponsiveList, type ResponsiveRow } from "@/components/responsive-list";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AvatarInitials } from "@/components/ui/avatar-initials";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
@@ -21,29 +22,30 @@ export default async function ContactsPage() {
     href: `/dashboard/contacts/${c.id}`,
     cells: {
       name: (
-        <div className="flex items-center gap-2">
-          <Link
-            href={`/dashboard/contacts/${c.id}`}
-            className="text-foreground hover:text-brand-700"
-          >
-            {c.name}
-          </Link>
-          {c.is_primary ? (
-            <Badge variant="secondary" className="text-[11px]">
-              Primary
-            </Badge>
-          ) : null}
+        <div className="flex items-center gap-3">
+          <AvatarInitials name={c.name} seed={c.id} size={34} />
+          <div className="flex min-w-0 flex-col">
+            <Link
+              href={`/dashboard/contacts/${c.id}`}
+              className="font-semibold text-ink-900 hover:text-blue-700"
+            >
+              {c.name}
+            </Link>
+            {c.is_primary ? (
+              <Badge variant="secondary" className="mt-1 w-fit text-[11px]">
+                Primary
+              </Badge>
+            ) : null}
+          </div>
         </div>
       ),
       company: (
-        <span className="text-muted-foreground">
-          {c.company?.name ?? "—"}
-        </span>
+        <span className="text-ink-500">{c.company?.name ?? "—"}</span>
       ),
-      email: <span className="text-muted-foreground">{c.email ?? "—"}</span>,
-      phone: <span className="text-muted-foreground">{c.phone ?? "—"}</span>,
+      email: <span className="text-ink-500">{c.email ?? "—"}</span>,
+      phone: <span className="font-numeric text-ink-500">{c.phone ?? "—"}</span>,
       whatsapp: (
-        <span className="text-muted-foreground">{c.whatsapp ?? "—"}</span>
+        <span className="font-numeric text-ink-500">{c.whatsapp ?? "—"}</span>
       ),
     },
   }));
@@ -83,7 +85,7 @@ export default async function ContactsPage() {
         rows={rows}
         empty={
           <div className="flex flex-col items-center gap-3">
-            <p className="text-foreground/80">No contacts yet.</p>
+            <p className="text-ink-700">No contacts yet.</p>
             <Button render={<Link href="/dashboard/contacts/new" />}>
               Add your first contact
             </Button>

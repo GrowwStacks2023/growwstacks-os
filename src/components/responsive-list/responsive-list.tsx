@@ -66,7 +66,7 @@ export function ResponsiveList({
     return (
       <div
         className={cn(
-          "rounded-lg border border-dashed border-border bg-card/50 p-10 text-center text-[14px] text-muted-foreground",
+          "rounded-[14px] border border-dashed border-line bg-white p-10 text-center text-[14px] text-ink-500",
           className
         )}
       >
@@ -80,7 +80,7 @@ export function ResponsiveList({
   return (
     <div className={cn("flex flex-col", className)}>
       {/* ──────────────── Wide: table ──────────────── */}
-      <div className="hidden md:block rounded-lg border border-border bg-card overflow-hidden">
+      <div className="hidden md:block rounded-[14px] border border-line bg-white overflow-hidden shadow-[0_1px_2px_rgba(10,37,64,0.05),0_1px_3px_rgba(10,37,64,0.06)]">
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
@@ -124,8 +124,8 @@ export function ResponsiveList({
       <ul className="md:hidden flex flex-col gap-3">
         {rows.map((row) => {
           const inner = (
-            <div className="flex flex-col gap-2.5 rounded-lg border border-border bg-card p-4 transition-colors hover:border-brand-300">
-              <div className="font-display text-[16px] font-semibold leading-tight tracking-[-0.005em] text-foreground">
+            <div className="flex flex-col gap-2.5 rounded-[14px] border border-line bg-white p-4 transition-colors hover:border-blue-600/50">
+              <div className="font-display text-[16px] font-semibold leading-tight tracking-[-0.02em] text-ink-900">
                 {row.cells[primaryKey]}
               </div>
               <dl className="grid grid-cols-1 gap-1.5 text-[14px]">
@@ -139,10 +139,8 @@ export function ResponsiveList({
                       key={col.key}
                       className="flex items-baseline justify-between gap-3"
                     >
-                      <dt className="text-[12px] font-medium uppercase tracking-[0.04em] text-muted-foreground">
-                        {col.label}
-                      </dt>
-                      <dd className="min-w-0 truncate text-right text-foreground/90">
+                      <dt className="eyebrow">{col.label}</dt>
+                      <dd className="min-w-0 truncate text-right text-ink-700">
                         {row.cells[col.key]}
                       </dd>
                     </div>
@@ -151,20 +149,13 @@ export function ResponsiveList({
             </div>
           );
 
-          return (
-            <li key={row.id}>
-              {row.href ? (
-                <a
-                  href={row.href}
-                  className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 rounded-lg"
-                >
-                  {inner}
-                </a>
-              ) : (
-                inner
-              )}
-            </li>
-          );
+          // NO outer <a> here. Every consumer puts a <Link> on the primary
+          // cell (the name/title), so wrapping the whole card produces a
+          // nested-anchor — invalid HTML and a hydration error. The card's
+          // own <Link> in the primary cell handles navigation. `row.href`
+          // is kept on the type as informational only; consumers can stop
+          // passing it without breaking anything.
+          return <li key={row.id}>{inner}</li>;
         })}
       </ul>
     </div>

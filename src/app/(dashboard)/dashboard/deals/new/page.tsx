@@ -1,8 +1,8 @@
 import Link from "next/link";
 
-import { Page, PageHeader } from "@/components/page-shell";
+import { Breadcrumbs, Page } from "@/components/page-shell";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { FormCard } from "@/components/form";
 import { createClient } from "@/lib/supabase/server";
 
 import { NewDealForm } from "./new-deal-form";
@@ -35,41 +35,40 @@ export default async function NewDealPage() {
 
   return (
     <Page>
-      <PageHeader
-        breadcrumbs={[
+      <Breadcrumbs
+        trail={[
           { label: "Dashboard", href: "/dashboard" },
           { label: "Deals", href: "/dashboard/deals" },
           { label: "New deal" },
         ]}
-        title="New deal"
-        description="Log an opportunity in the sales pipeline."
       />
-      <Card className="w-full max-w-[640px]">
-        <CardContent className="pt-6">
-          {hasCompanies ? (
-            <NewDealForm
-              companies={companies ?? []}
-              contacts={(contacts ?? []).map((c) => ({
-                id: c.id,
-                name: c.name,
-                companyName: c.company?.name ?? null,
-              }))}
-              owners={owners ?? []}
-            />
-          ) : (
-            <div className="flex flex-col gap-3">
-              <p className="text-sm text-muted-foreground">
-                Create a company first — every deal has to belong to one.
-              </p>
-              <div>
-                <Button render={<Link href="/dashboard/companies/new" />}>
-                  Create company
-                </Button>
-              </div>
+      <FormCard
+        title="New deal"
+        subtitle="Log an opportunity in the sales pipeline. Stage starts at New — drag it on the Board view to move it forward."
+      >
+        {hasCompanies ? (
+          <NewDealForm
+            companies={companies ?? []}
+            contacts={(contacts ?? []).map((c) => ({
+              id: c.id,
+              name: c.name,
+              companyName: c.company?.name ?? null,
+            }))}
+            owners={owners ?? []}
+          />
+        ) : (
+          <div className="flex flex-col gap-3">
+            <p className="text-[14px] text-ink-500">
+              Create a company first — every deal has to belong to one.
+            </p>
+            <div>
+              <Button render={<Link href="/dashboard/companies/new" />}>
+                Create company
+              </Button>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </div>
+        )}
+      </FormCard>
     </Page>
   );
 }

@@ -5,251 +5,142 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ═══════════════════════════════════════════════════════════════════════
-   GrowwStacks OS — Visual Identity (v2)
+   GrowwStacks OS — Visual Identity v3 (per CLAUDE_CODE_PROMPT spec)
    ───────────────────────────────────────────────────────────────────────
-   Direction:  Confident product, modern professional. RICH BLUE dominates
-               (sidebar, primary actions, brand, focus). GREEN punctuates
-               positive states only (won deals, received payments,
-               success). White / warm-off-white surfaces. Calm slate
-               neutrals for text + borders. Bricolage Grotesque headings
-               over Geist Sans body, at a comfortably readable scale.
-   Rules:      blue is the BRAND. green is the ACCENT. never visual equals.
-               body type at 15px+, line-height ≥1.5, plenty of whitespace.
-   See DESIGN.md for the full token reference.
-   ═══════════════════════════════════════════════════════════════════════ */
-
-@theme inline {
-  /* ── Type ─────────────────────────────────────────────────────────── */
-  --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-mono), ui-monospace, monospace;
-  /* `font-display` Tailwind utility uses Bricolage Grotesque. */
-  --font-display: var(--font-display), Geist, ui-sans-serif, sans-serif;
-  /* Back-compat alias for any lingering `font-heading` references. */
-  --font-heading: var(--font-display), Geist, ui-sans-serif, sans-serif;
-
-  /* ── Colors (shadcn-compatible aliases mapped to our tokens) ─────── */
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
-
-  /* ── Brand BLUE ramp (named utilities) ──
-     Deep navy / royal blue. Hue 250 → leans cool but with weight, not
-     bright cyan. 50–200 for tints; 600 = resting primary; 700–900 deep. */
-  --color-brand-50:  var(--brand-50);
-  --color-brand-100: var(--brand-100);
-  --color-brand-200: var(--brand-200);
-  --color-brand-300: var(--brand-300);
-  --color-brand-400: var(--brand-400);
-  --color-brand-500: var(--brand-500);
-  --color-brand-600: var(--brand-600);
-  --color-brand-700: var(--brand-700);
-  --color-brand-800: var(--brand-800);
-  --color-brand-900: var(--brand-900);
-
-  /* ── ACCENT GREEN ramp ──
-     Used SPARINGLY: status badges for "won/received/done", a small
-     positive-delta dot, success toasts. Never as primary surface or
-     button background. */
-  --color-success-50:  var(--success-50);
-  --color-success-100: var(--success-100);
-  --color-success-500: var(--success-500);
-  --color-success-600: var(--success-600);
-  --color-success-700: var(--success-700);
-
-  /* ── Radius ─────────────────────────────────────────────────────── */
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
-}
-
-/* ═══════════════════════════════════════════════════════════════════════
-   Token values
-   ───────────────────────────────────────────────────────────────────────
-   HIERARCHY
-     Brand BLUE     dominant — sidebar primary, primary buttons, focus,
-                    big numbers, links, brand mark
-     Accent GREEN   punctuates positives only — never large surfaces
-     Off-white      page background (warm tint, paper not clinical)
-     White          card surfaces (lift off the page bg)
-     Slate          text + borders, calm neutral
-     Amber / Red    warning + danger badges only
-
-   Contrast targets
-     Primary button (brand-600 bg + white label) ≈ 5.5:1
-     Body text on bg ≈ 11:1
-     Muted text on bg ≈ 4.6:1
+   Rich blue + green accent on cool-white surfaces.
+   Display: Space Grotesk -0.02em.  Body: Plus Jakarta Sans -0.01em.
+   Mono / numerics: JetBrains Mono with tabular-nums.
+   Sidebar: dark navy gradient with green-glow accent.
+   Source: design/ folder + CLAUDE_CODE_PROMPT.md
    ═══════════════════════════════════════════════════════════════════════ */
 
 :root {
-  /* ── BLUE ramp ── deep cobalt / royal, oklch hue 248–255. */
-  --brand-50:  oklch(0.972 0.014 250);
-  --brand-100: oklch(0.940 0.030 250);
-  --brand-200: oklch(0.878 0.060 250);
-  --brand-300: oklch(0.780 0.105 251);
-  --brand-400: oklch(0.660 0.155 254);
-  --brand-500: oklch(0.555 0.190 256);
-  --brand-600: oklch(0.475 0.200 258);   /* resting primary */
-  --brand-700: oklch(0.400 0.180 259);
-  --brand-800: oklch(0.325 0.150 260);
-  --brand-900: oklch(0.255 0.105 260);
+  /* Brand BLUE */
+  --blue-900: #0a2540;
+  --blue-800: #0f3a66;
+  --blue-700: #10519b;
+  --blue-600: #1d6fd6;
+  --blue-100: #e6f0fb;
+  --blue-50:  #f1f7fe;
 
-  /* ── GREEN ramp ── positive accent. */
-  --success-50:  oklch(0.965 0.030 155);
-  --success-100: oklch(0.930 0.060 155);
-  --success-500: oklch(0.660 0.150 152);
-  --success-600: oklch(0.575 0.155 152);
-  --success-700: oklch(0.490 0.135 152);
+  /* Brand GREEN (success / positive accent) */
+  --green-700: #0b7a5b;
+  --green-600: #0ea371;
+  --green-500: #16c088;
+  --green-100: #dcf7ec;
+  --green-50:  #edfbf4;
 
-  /* ── Surfaces — warm-off-white page, pure white cards ──
-     Subtle warm tint (hue 80, very low chroma) keeps the page from
-     looking clinical white. Cards stay pure white so they lift off. */
-  --background: oklch(0.985 0.004 80);
-  --foreground: oklch(0.175 0.020 255);    /* near-black with a hint of brand */
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.175 0.020 255);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.175 0.020 255);
+  /* Cool-white neutrals (NOT cream) */
+  --bg:           #f4f8fc;
+  --surface:      #ffffff;
+  --line:         #e3ecf5;
+  --line-strong:  #d2e0ee;
 
-  /* ── Primary = brand-600 (resting). hover bumps to brand-700. ── */
-  --primary: var(--brand-600);
-  --primary-foreground: oklch(0.985 0.004 80);
+  /* Text */
+  --ink-900: #0a2540;
+  --ink-700: #324a63;
+  --ink-500: #5d748c;
+  --ink-400: #8aa0b6;
 
-  --secondary: oklch(0.960 0.008 250);
-  --secondary-foreground: oklch(0.215 0.030 255);
-  --muted: oklch(0.960 0.008 250);
-  --muted-foreground: oklch(0.495 0.018 250);
-  --accent: oklch(0.955 0.014 250);
-  --accent-foreground: oklch(0.215 0.030 255);
+  /* Semantic */
+  --amber-600: #c77700;
+  --amber-100: #fdf0d9;
+  --red-600:   #d23b3b;
+  --red-100:   #fbe3e3;
+  --violet-600:#6b4ed8;
+  --violet-100:#ece7fb;
 
-  --destructive: oklch(0.585 0.235 22);
-
-  --border: oklch(0.905 0.012 250);
-  --input: oklch(0.905 0.012 250);
-  --ring: var(--brand-500);
-
-  /* Charts — coordinated blues + green + neutrals. */
-  --chart-1: var(--brand-500);
-  --chart-2: var(--success-500);
-  --chart-3: oklch(0.660 0.130 220);
-  --chart-4: oklch(0.620 0.140 285);
-  --chart-5: oklch(0.580 0.110 230);
-
-  --radius: 0.625rem;
-
-  /* ── Sidebar = the brand surface. Deep blue, light text. ──
-     Per the brief: rich blue dominates. Putting the sidebar in brand
-     blue makes the identity unmistakable the moment you open the app. */
-  --sidebar: var(--brand-900);
-  --sidebar-foreground: oklch(0.910 0.020 250);
-  --sidebar-primary: oklch(1 0 0);
-  --sidebar-primary-foreground: var(--brand-900);
-  --sidebar-accent: oklch(1 0 0 / 8%);            /* hover/active tint */
-  --sidebar-accent-foreground: oklch(1 0 0);
-  --sidebar-border: oklch(1 0 0 / 8%);
-  --sidebar-ring: var(--brand-300);
+  /* Shape + shadow */
+  --radius:    14px;
+  --radius-sm: 10px;
+  --shadow-sm: 0 1px 2px rgba(10,37,64,.05), 0 1px 3px rgba(10,37,64,.06);
+  --shadow-md: 0 6px 20px -8px rgba(10,37,64,.18), 0 2px 6px rgba(10,37,64,.06);
+  --shadow-primary: 0 4px 14px -4px rgba(29,111,214,.55);
 }
 
-.dark {
-  --brand-50:  oklch(0.235 0.040 258);
-  --brand-100: oklch(0.290 0.060 258);
-  --brand-200: oklch(0.350 0.090 258);
-  --brand-300: oklch(0.420 0.125 258);
-  --brand-400: oklch(0.510 0.165 258);
-  --brand-500: oklch(0.605 0.195 258);
-  --brand-600: oklch(0.680 0.190 258);
-  --brand-700: oklch(0.760 0.170 258);
-  --brand-800: oklch(0.840 0.140 260);
-  --brand-900: oklch(0.910 0.095 262);
+/* ═══════════════════════════════════════════════════════════════════════
+   shadcn token bridge — map the design tokens into shadcn's variable
+   names so all primitives keep working.
+   ═══════════════════════════════════════════════════════════════════════ */
 
-  --success-50:  oklch(0.250 0.045 152);
-  --success-100: oklch(0.310 0.080 152);
-  --success-500: oklch(0.660 0.150 152);
-  --success-600: oklch(0.730 0.150 152);
-  --success-700: oklch(0.795 0.135 152);
+@theme inline {
+  --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-mono), ui-monospace, monospace;
+  --font-display: var(--font-display), ui-sans-serif, sans-serif;
+  --font-heading: var(--font-display), ui-sans-serif, sans-serif;
 
-  --background: oklch(0.155 0.020 255);
-  --foreground: oklch(0.965 0.010 250);
-  --card: oklch(0.215 0.022 256);
-  --card-foreground: oklch(0.965 0.010 250);
-  --popover: oklch(0.215 0.022 256);
-  --popover-foreground: oklch(0.965 0.010 250);
+  /* Named utility colors (bg-blue-600, text-ink-900, etc.) */
+  --color-blue-900: var(--blue-900);
+  --color-blue-800: var(--blue-800);
+  --color-blue-700: var(--blue-700);
+  --color-blue-600: var(--blue-600);
+  --color-blue-100: var(--blue-100);
+  --color-blue-50:  var(--blue-50);
+  --color-green-700: var(--green-700);
+  --color-green-600: var(--green-600);
+  --color-green-500: var(--green-500);
+  --color-green-100: var(--green-100);
+  --color-green-50:  var(--green-50);
+  --color-amber-600: var(--amber-600);
+  --color-amber-100: var(--amber-100);
+  --color-red-600:   var(--red-600);
+  --color-red-100:   var(--red-100);
+  --color-violet-600: var(--violet-600);
+  --color-violet-100: var(--violet-100);
+  --color-ink-900: var(--ink-900);
+  --color-ink-700: var(--ink-700);
+  --color-ink-500: var(--ink-500);
+  --color-ink-400: var(--ink-400);
+  --color-line:        var(--line);
+  --color-line-strong: var(--line-strong);
 
-  --primary: var(--brand-500);
-  --primary-foreground: oklch(0.180 0.020 255);
+  /* shadcn aliases */
+  --color-background: var(--bg);
+  --color-foreground: var(--ink-900);
+  --color-card: var(--surface);
+  --color-card-foreground: var(--ink-900);
+  --color-popover: var(--surface);
+  --color-popover-foreground: var(--ink-900);
+  --color-primary: var(--blue-700);
+  --color-primary-foreground: #ffffff;
+  --color-secondary: var(--blue-50);
+  --color-secondary-foreground: var(--blue-700);
+  --color-muted: var(--blue-50);
+  --color-muted-foreground: var(--ink-500);
+  --color-accent: var(--blue-50);
+  --color-accent-foreground: var(--blue-700);
+  --color-destructive: var(--red-600);
+  --color-border: var(--line);
+  --color-input: var(--line-strong);
+  --color-ring: var(--blue-600);
+  --color-chart-1: var(--blue-600);
+  --color-chart-2: var(--green-500);
+  --color-chart-3: var(--violet-600);
+  --color-chart-4: var(--amber-600);
+  --color-chart-5: var(--blue-800);
+  --color-sidebar: var(--blue-900);
+  --color-sidebar-foreground: #a9c2da;
+  --color-sidebar-primary: #ffffff;
+  --color-sidebar-primary-foreground: var(--blue-900);
+  --color-sidebar-accent: rgba(255, 255, 255, 0.06);
+  --color-sidebar-accent-foreground: #ffffff;
+  --color-sidebar-border: rgba(255, 255, 255, 0.08);
+  --color-sidebar-ring: var(--blue-600);
 
-  --secondary: oklch(0.270 0.020 256);
-  --secondary-foreground: oklch(0.965 0.010 250);
-  --muted: oklch(0.270 0.020 256);
-  --muted-foreground: oklch(0.735 0.018 250);
-  --accent: oklch(0.295 0.030 256);
-  --accent-foreground: oklch(0.965 0.010 250);
-
-  --destructive: oklch(0.700 0.190 22);
-
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: var(--brand-400);
-
-  --chart-1: var(--brand-400);
-  --chart-2: var(--success-500);
-  --chart-3: oklch(0.660 0.130 220);
-  --chart-4: oklch(0.620 0.140 285);
-  --chart-5: oklch(0.580 0.110 230);
-
-  --sidebar: oklch(0.180 0.030 256);
-  --sidebar-foreground: oklch(0.910 0.020 250);
-  --sidebar-primary: var(--brand-500);
-  --sidebar-primary-foreground: oklch(0.985 0.004 80);
-  --sidebar-accent: oklch(1 0 0 / 6%);
-  --sidebar-accent-foreground: oklch(0.965 0.010 250);
-  --sidebar-border: oklch(1 0 0 / 8%);
-  --sidebar-ring: var(--brand-400);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-sm);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.2);
+  --radius-2xl: calc(var(--radius) * 1.5);
+  --radius-3xl: calc(var(--radius) * 2);
+  --radius-4xl: calc(var(--radius) * 2.5);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
    Base layer + type scale
    ───────────────────────────────────────────────────────────────────────
-   TYPE SCALE  (resolves "fonts too small")
-     body         16px / line-height 1.55 / Geist Sans
-     small        14px
-     caption      12px
-     h1 / display 32px (sm: 28px), weight 600
-     h2           24px, weight 600
-     h3           20px, weight 600
-     h4           17px, weight 600
-   All headings in Bricolage Grotesque with -0.012em tracking.
+   Body 15px / Plus Jakarta Sans / -0.01em
+   Headings → Space Grotesk / -0.02em
    ═══════════════════════════════════════════════════════════════════════ */
 
 @layer base {
@@ -258,61 +149,207 @@
   }
   body {
     @apply bg-background text-foreground font-sans;
-    font-size: 16px;
+    color: var(--ink-700);
+    background-color: var(--bg);
+    font-size: 15px;
     line-height: 1.55;
-    font-feature-settings: "cv11", "ss01", "ss03";
+    letter-spacing: -0.01em;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
 
   h1, h2, h3, h4 {
-    @apply font-display text-foreground;
-    letter-spacing: -0.012em;
+    color: var(--ink-900);
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
   }
-  h1 { font-weight: 600; line-height: 1.1;  font-variation-settings: "opsz" 36, "wdth" 100; }
-  h2 { font-weight: 600; line-height: 1.18; font-variation-settings: "opsz" 24, "wdth" 100; }
-  h3 { font-weight: 600; line-height: 1.25; font-variation-settings: "opsz" 20, "wdth" 100; }
-  h4 { font-weight: 600; line-height: 1.3;  font-variation-settings: "opsz" 16, "wdth" 100; }
+  h1 { font-weight: 700; line-height: 1.1;  }
+  h2 { font-weight: 600; line-height: 1.18; }
+  h3 { font-weight: 600; line-height: 1.25; }
+  h4 { font-weight: 600; line-height: 1.3;  }
 
-  /* Tabular numerics for amounts / IDs. */
   .font-numeric {
     font-family: var(--font-mono);
-    font-feature-settings: "tnum", "lnum";
+    font-feature-settings: "tnum";
+    font-variant-numeric: tabular-nums;
   }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   Reusable surface affordances
+   Component-level utilities used by the design system
    ═══════════════════════════════════════════════════════════════════════ */
 
 @layer components {
-  /* Subtle blue glow under primary buttons — reads as a stamped action,
-     not a flat tile. */
-  .btn-primary-shadow {
+  /* Sidebar gradient (dark navy with subtle warmth). */
+  .sidebar-bg {
+    background: linear-gradient(180deg, #0a2540 0%, #0c2f52 100%);
+  }
+
+  /* Active sidebar pill — blue/green tinted gradient on dark navy. */
+  .sidebar-active-pill {
+    background: linear-gradient(
+      90deg,
+      rgba(29, 111, 214, 0.22),
+      rgba(22, 192, 136, 0.12)
+    );
     box-shadow:
-      inset 0 1px 0 0 color-mix(in oklch, white 22%, transparent),
-      0 1px 0 0 color-mix(in oklch, var(--brand-900) 35%, transparent),
-      0 1px 2px 0 color-mix(in oklch, var(--brand-900) 25%, transparent);
+      inset 3px 0 0 0 var(--green-500),
+      inset 0 0 18px -8px rgba(22, 192, 136, 0.35);
   }
 
-  /* Card override — clean white surface, hairline border, very soft
-     shadow that reads as "lift". */
-  [data-slot="card"] {
-    box-shadow:
-      0 1px 2px 0 color-mix(in oklch, var(--brand-900) 4%, transparent),
-      0 1px 0 0 color-mix(in oklch, var(--brand-900) 3%, transparent);
+  /* Primary button — blue gradient with the brand glow. */
+  .btn-primary-gradient {
+    background: linear-gradient(135deg, var(--blue-700), var(--blue-600));
+    color: #ffffff;
+    box-shadow: var(--shadow-primary);
+    transition: filter 0.15s ease, box-shadow 0.15s ease,
+      transform 0.05s ease;
+  }
+  .btn-primary-gradient:hover {
+    filter: brightness(1.05);
+  }
+  .btn-primary-gradient:active {
+    transform: translateY(1px);
   }
 
-  [data-slot="input"],
-  [data-slot="textarea"],
-  [data-slot="select-trigger"] {
-    background-color: var(--card);
+  /* Brand mark — rounded blue→green tile with white G. */
+  .brand-mark {
+    background: linear-gradient(135deg, var(--blue-600), var(--green-500));
+    color: #ffffff;
+    box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.12) inset,
+      0 2px 6px rgba(10, 37, 64, 0.2);
   }
 
-  /* Sidebar link link affordance — keyboard focus reads through the
-     dark surface. */
-  .sidebar-focus-ring:focus-visible {
-    outline: 2px solid var(--brand-300);
-    outline-offset: 2px;
+  /* KPI card left accent bar. Variants set via data-accent. */
+  .kpi-card {
+    position: relative;
+    overflow: hidden;
+  }
+  .kpi-card::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--blue-600);
+  }
+  .kpi-card[data-accent="green"]::before  { background: var(--green-500); }
+  .kpi-card[data-accent="amber"]::before  { background: var(--amber-600); }
+  .kpi-card[data-accent="violet"]::before { background: var(--violet-600); }
+  .kpi-card[data-accent="blue"]::before   { background: var(--blue-600); }
+
+  /* Progress mini-bar (milestones). 6px track + blue→green gradient. */
+  .progress-track {
+    width: 100%;
+    height: 6px;
+    background: var(--line);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--blue-600), var(--green-500));
+    border-radius: 999px;
+    transition: width 0.3s ease;
+  }
+
+  /* Badge dot — leads every status pill. */
+  .badge-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    margin-right: 6px;
+    background: currentColor;
+  }
+
+  /* Eyebrow label — section eyebrow / column heading / KPI label. */
+  .eyebrow {
+    font-size: 10.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-400);
+    font-weight: 700;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Login page — animated gradient + drifting orbs
+   ───────────────────────────────────────────────────────────────────────
+   Pure CSS keyframes. All three animations are slow (>20s) and respect
+   prefers-reduced-motion. Used by /src/app/(auth)/login/page.tsx.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.login-bg {
+  background: linear-gradient(
+    135deg,
+    #0a2540 0%,
+    #10519b 30%,
+    #1d6fd6 55%,
+    #0ea371 85%,
+    #16c088 100%
+  );
+  background-size: 220% 220%;
+  background-position: 0% 50%;
+  animation: login-bg-drift 28s ease-in-out infinite;
+}
+
+@keyframes login-bg-drift {
+  0%   { background-position: 0%   50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0%   50%; }
+}
+
+/* Soft-blur radial orbs. Each gets its own animation with a different
+   duration so they never sync. Positioned absolutely by the page itself. */
+.login-orb {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(60px);
+  opacity: 0.35;
+  will-change: transform;
+  pointer-events: none;
+}
+
+.login-orb--a {
+  background: radial-gradient(circle, #1d6fd6 0%, rgba(29, 111, 214, 0) 70%);
+  animation: login-orb-a 32s ease-in-out infinite;
+}
+
+.login-orb--b {
+  background: radial-gradient(circle, #16c088 0%, rgba(22, 192, 136, 0) 70%);
+  animation: login-orb-b 38s ease-in-out infinite;
+}
+
+.login-orb--c {
+  background: radial-gradient(circle, #6b4ed8 0%, rgba(107, 78, 216, 0) 70%);
+  animation: login-orb-c 44s ease-in-out infinite;
+}
+
+@keyframes login-orb-a {
+  0%   { transform: translate3d(0,    0,    0) scale(1); }
+  50%  { transform: translate3d(40px, 60px, 0) scale(1.1); }
+  100% { transform: translate3d(0,    0,    0) scale(1); }
+}
+
+@keyframes login-orb-b {
+  0%   { transform: translate3d(0,     0,     0) scale(1); }
+  50%  { transform: translate3d(-50px, 40px,  0) scale(1.08); }
+  100% { transform: translate3d(0,     0,     0) scale(1); }
+}
+
+@keyframes login-orb-c {
+  0%   { transform: translate3d(0,     0,     0) scale(1); }
+  50%  { transform: translate3d(30px, -50px,  0) scale(1.12); }
+  100% { transform: translate3d(0,     0,     0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-bg,
+  .login-orb--a,
+  .login-orb--b,
+  .login-orb--c {
+    animation: none !important;
   }
 }

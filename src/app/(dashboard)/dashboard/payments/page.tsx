@@ -151,7 +151,7 @@ export default async function PaymentsPage() {
             <div className="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
               <span
                 aria-hidden
-                className="size-2 rounded-full bg-success-500"
+                className="size-2 rounded-full bg-green-500"
               />
               Received
             </div>

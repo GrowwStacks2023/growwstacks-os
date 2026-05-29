@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
 
-import { Page, PageHeader, type Crumb } from "@/components/page-shell";
+import { Breadcrumbs, Page, type Crumb } from "@/components/page-shell";
 import { NewTaskForm } from "@/components/tasks/new-task-form";
 import type { TaskContext } from "@/components/tasks/actions";
-import { Card, CardContent } from "@/components/ui/card";
+import { FormCard } from "@/components/form";
 import { createClient } from "@/lib/supabase/server";
 
 // /dashboard/tasks/new?deal=<id> or ?contact=<id>
@@ -47,7 +47,7 @@ export default async function NewStandaloneTaskPage({
     cancelHref = `/dashboard/deals/${deal.id}`;
     descriptionNode = (
       <>
-        Attached to deal <span className="font-medium">{deal.title}</span>.
+        Attached to deal <span className="font-semibold text-ink-900">{deal.title}</span>.
       </>
     );
     breadcrumbs = [
@@ -67,7 +67,7 @@ export default async function NewStandaloneTaskPage({
     cancelHref = `/dashboard/contacts/${contact.id}`;
     descriptionNode = (
       <>
-        Attached to contact <span className="font-medium">{contact.name}</span>.
+        Attached to contact <span className="font-semibold text-ink-900">{contact.name}</span>.
       </>
     );
     breadcrumbs = [
@@ -96,21 +96,15 @@ export default async function NewStandaloneTaskPage({
 
   return (
     <Page>
-      <PageHeader
-        breadcrumbs={breadcrumbs}
-        title="New task"
-        description={descriptionNode}
-      />
-      <Card className="w-full max-w-[640px]">
-        <CardContent className="pt-6">
-          <NewTaskForm
-            context={context}
-            assignees={assignees ?? []}
-            pmCandidates={pmCandidates ?? []}
-            cancelHref={cancelHref}
-          />
-        </CardContent>
-      </Card>
+      <Breadcrumbs trail={breadcrumbs} />
+      <FormCard title="New task" subtitle={descriptionNode}>
+        <NewTaskForm
+          context={context}
+          assignees={assignees ?? []}
+          pmCandidates={pmCandidates ?? []}
+          cancelHref={cancelHref}
+        />
+      </FormCard>
     </Page>
   );
 }

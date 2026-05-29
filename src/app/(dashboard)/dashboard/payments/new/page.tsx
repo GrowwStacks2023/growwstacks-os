@@ -1,9 +1,9 @@
-import { Page, PageHeader } from "@/components/page-shell";
+import { Breadcrumbs, Page } from "@/components/page-shell";
 import {
   RecordPaymentForm,
   type PaymentContextOption,
 } from "@/components/payments/record-payment-form";
-import { Card, CardContent } from "@/components/ui/card";
+import { FormCard } from "@/components/form";
 import { createClient } from "@/lib/supabase/server";
 
 // Role gating happens upstream in
@@ -49,34 +49,31 @@ export default async function NewPaymentPage() {
 
   return (
     <Page>
-      <PageHeader
-        breadcrumbs={[
+      <Breadcrumbs
+        trail={[
           { label: "Dashboard", href: "/dashboard" },
           { label: "Payments", href: "/dashboard/payments" },
           { label: "Record payment" },
         ]}
-        title="Record payment"
-        description="Pick the project or deal this payment is against. The company is derived from your choice."
       />
-      <Card className="w-full max-w-[720px]">
-        <CardContent className="pt-6">
-          {options.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No projects or deals available to attach a payment to. Create one
-              first.
-            </p>
-          ) : (
-            <RecordPaymentForm
-              mode="picker"
-              options={options}
-              // Revalidate the list so the new row appears, and redirect there
-              // so the user lands on the payment they just recorded.
-              revalidatePath="/dashboard/payments"
-              redirectTo="/dashboard/payments"
-            />
-          )}
-        </CardContent>
-      </Card>
+      <FormCard
+        title="Record payment"
+        subtitle="Pick the project or deal this payment is against. The company is derived from your choice."
+      >
+        {options.length === 0 ? (
+          <p className="text-[14px] text-ink-500">
+            No projects or deals available to attach a payment to. Create one
+            first.
+          </p>
+        ) : (
+          <RecordPaymentForm
+            mode="picker"
+            options={options}
+            revalidatePath="/dashboard/payments"
+            redirectTo="/dashboard/payments"
+          />
+        )}
+      </FormCard>
     </Page>
   );
 }

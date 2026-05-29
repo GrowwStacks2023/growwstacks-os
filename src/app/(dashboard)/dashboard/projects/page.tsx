@@ -57,10 +57,27 @@ export default async function ProjectsPage() {
     const status = PROJECT_STATUS[project.status];
     const pmDisplay = userDisplay(project.pm, "—");
     const stats = milestoneStats.get(project.id);
-    const progressLabel =
+    const pct =
       stats && stats.total > 0
-        ? `${stats.completed} / ${stats.total} milestones`
-        : "—";
+        ? Math.round((stats.completed / stats.total) * 100)
+        : 0;
+    const progressNode =
+      stats && stats.total > 0 ? (
+        <div className="flex min-w-[120px] flex-col gap-1.5">
+          <div className="flex items-center justify-between gap-2 text-[12px] text-ink-500">
+            <span className="font-numeric">
+              {stats.completed}/{stats.total}
+            </span>
+            <span className="font-numeric text-ink-400">{pct}%</span>
+          </div>
+          <div className="progress-track">
+            <div className="progress-fill" style={{ width: `${pct}%` }} />
+          </div>
+        </div>
+      ) : (
+        <span className="text-ink-400">—</span>
+      );
+
     return {
       id: project.id,
       href: `/dashboard/projects/${project.id}`,
@@ -68,27 +85,23 @@ export default async function ProjectsPage() {
         name: (
           <Link
             href={`/dashboard/projects/${project.id}`}
-            className="text-foreground hover:text-brand-700"
+            className="font-semibold text-ink-900 hover:text-blue-700"
           >
             {project.name}
           </Link>
         ),
         company: (
-          <span className="text-muted-foreground">
-            {project.company?.name ?? "—"}
-          </span>
+          <span className="text-ink-500">{project.company?.name ?? "—"}</span>
         ),
         status: (
           <Badge variant={status.variant} className={status.className}>
             {status.label}
           </Badge>
         ),
-        progress: (
-          <span className="text-muted-foreground">{progressLabel}</span>
-        ),
-        pm: <span className="text-muted-foreground">{pmDisplay}</span>,
+        progress: progressNode,
+        pm: <span className="text-ink-500">{pmDisplay}</span>,
         target_end: (
-          <span className="text-muted-foreground">
+          <span className="font-numeric text-ink-500">
             {project.expected_end_at
               ? dateFormatter.format(new Date(project.expected_end_at))
               : "—"}
@@ -140,7 +153,7 @@ export default async function ProjectsPage() {
         rows={rows}
         empty={
           <div className="flex flex-col items-center gap-3">
-            <p className="text-foreground/80">
+            <p className="text-ink-700">
               {canEdit ? "No projects yet." : "No projects to show yet."}
             </p>
             {canEdit ? (

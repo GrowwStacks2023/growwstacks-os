@@ -16,7 +16,7 @@ export function FormActions({
   return (
     <div
       className={cn(
-        "mt-2 flex flex-col-reverse gap-2 border-t border-border/70 pt-5 sm:flex-row sm:items-center sm:justify-end",
+        "mt-2 flex flex-col-reverse gap-2 border-t border-line pt-5 sm:flex-row sm:items-center sm:justify-end",
         className
       )}
     >

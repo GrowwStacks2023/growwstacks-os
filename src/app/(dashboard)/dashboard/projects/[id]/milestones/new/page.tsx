@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 
-import { Page, PageHeader } from "@/components/page-shell";
-import { Card, CardContent } from "@/components/ui/card";
+import { Breadcrumbs, Page } from "@/components/page-shell";
+import { FormCard } from "@/components/form";
 import { createClient } from "@/lib/supabase/server";
 
 import { NewMilestoneForm } from "./new-milestone-form";
@@ -36,25 +36,25 @@ export default async function NewMilestonePage({
 
   return (
     <Page>
-      <PageHeader
-        breadcrumbs={[
+      <Breadcrumbs
+        trail={[
           { label: "Dashboard", href: "/dashboard" },
           { label: "Projects", href: "/dashboard/projects" },
           { label: project.name, href: `/dashboard/projects/${id}` },
           { label: "New milestone" },
         ]}
+      />
+      <FormCard
         title="New milestone"
-        description={
+        subtitle={
           <>
-            Add a phase to <span className="font-medium">{project.name}</span>.
+            Add a phase to <span className="font-semibold text-ink-900">{project.name}</span>.
+            Sequence determines the order on the project page.
           </>
         }
-      />
-      <Card className="w-full max-w-[640px]">
-        <CardContent className="pt-6">
-          <NewMilestoneForm projectId={id} nextSequence={nextSequence} />
-        </CardContent>
-      </Card>
+      >
+        <NewMilestoneForm projectId={id} nextSequence={nextSequence} />
+      </FormCard>
     </Page>
   );
 }

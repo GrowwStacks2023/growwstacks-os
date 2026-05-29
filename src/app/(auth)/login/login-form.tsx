@@ -2,10 +2,10 @@
 
 import { useActionState } from "react";
 
+import { Field } from "@/components/form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 
 import { signIn, type SignInState } from "./actions";
 
@@ -15,21 +15,20 @@ export function LoginForm() {
   const [state, formAction, pending] = useActionState(signIn, initialState);
 
   return (
-    <form action={formAction} className="flex flex-col gap-4">
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="email">Email</Label>
+    <form action={formAction} className="flex flex-col gap-5">
+      <Field id="email" label="Email" required>
         <Input
           id="email"
           name="email"
           type="email"
           autoComplete="email"
+          placeholder="you@growwstacks.com"
           required
           disabled={pending}
         />
-      </div>
+      </Field>
 
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="password">Password</Label>
+      <Field id="password" label="Password" required>
         <Input
           id="password"
           name="password"
@@ -38,7 +37,7 @@ export function LoginForm() {
           required
           disabled={pending}
         />
-      </div>
+      </Field>
 
       {state.error ? (
         <Alert variant="destructive">

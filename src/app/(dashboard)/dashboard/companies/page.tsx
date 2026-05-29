@@ -26,7 +26,7 @@ export default async function CompaniesPage() {
       name: (
         <Link
           href={`/dashboard/companies/${c.id}`}
-          className="text-foreground hover:text-brand-700"
+          className="font-semibold text-ink-900 hover:text-blue-700"
         >
           {c.name}
         </Link>

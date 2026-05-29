@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -29,16 +28,19 @@ export function Breadcrumbs({
   return (
     <nav
       aria-label="Breadcrumb"
-      className={cn("flex flex-wrap items-center gap-1 text-xs", className)}
+      className={cn(
+        "flex flex-wrap items-center gap-1.5 text-[12.5px] font-medium",
+        className
+      )}
     >
       {trail.map((c, i) => {
         const isLast = i === trail.length - 1;
         return (
-          <span key={`${c.label}-${i}`} className="flex items-center gap-1">
+          <span key={`${c.label}-${i}`} className="flex items-center gap-1.5">
             {c.href && !isLast ? (
               <Link
                 href={c.href}
-                className="text-muted-foreground transition-colors hover:text-foreground"
+                className="text-ink-400 transition-colors hover:text-blue-700"
               >
                 {c.label}
               </Link>
@@ -46,19 +48,16 @@ export function Breadcrumbs({
               <span
                 aria-current={isLast ? "page" : undefined}
                 className={
-                  isLast
-                    ? "text-foreground font-medium"
-                    : "text-muted-foreground"
+                  isLast ? "text-blue-700 font-semibold" : "text-ink-400"
                 }
               >
                 {c.label}
               </span>
             )}
             {!isLast ? (
-              <ChevronRight
-                aria-hidden
-                className="size-3 text-muted-foreground/60"
-              />
+              <span aria-hidden className="text-ink-400/70 select-none">
+                ›
+              </span>
             ) : null}
           </span>
         );

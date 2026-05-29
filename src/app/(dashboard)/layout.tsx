@@ -36,22 +36,24 @@ export default async function DashboardLayout({
     (user.user_metadata?.name as string | undefined) ?? user.email ?? "Account";
 
   return (
-    <div className="flex min-h-svh bg-background">
+    <div className="flex min-h-svh items-start bg-background">
       <Sidebar role={role} />
       <div className="flex min-w-0 flex-1 flex-col">
         {/*
-          Top utility strip — a clean white bar with a hairline rule,
-          name + sign-out on the right. The page title is what reads
-          first under it.
+          Top utility strip — sticky to the top of the viewport so it
+          stays visible while the dashboard scrolls. Sits below the
+          sidebar in stacking order (z-10 < sidebar's z-20) which is
+          fine: they don't horizontally overlap. Backdrop-blur softens
+          long lists scrolling beneath.
         */}
-        <header className="border-b border-border bg-card">
+        <header className="sticky top-0 z-10 border-b border-line bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/85">
           <div className="flex items-center justify-end gap-4 px-8 py-3.5">
-            <div className="flex items-center gap-2 rounded-full bg-muted px-3 py-1">
+            <div className="flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1">
               <span
                 aria-hidden
-                className="size-2 rounded-full bg-success-500"
+                className="size-2 rounded-full bg-green-500"
               />
-              <span className="text-[13px] font-medium text-foreground/85">
+              <span className="text-[13px] font-medium text-ink-900">
                 {displayName}
               </span>
             </div>

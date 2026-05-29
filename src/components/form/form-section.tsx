@@ -24,17 +24,15 @@ export function FormSection({
         <header className="flex flex-col gap-1.5">
           {title ? (
             variant === "prominent" ? (
-              <h3 className="font-display text-base font-semibold tracking-tight text-foreground">
+              <h3 className="font-display text-[16px] font-semibold tracking-[-0.02em] text-ink-900">
                 {title}
               </h3>
             ) : (
-              <h4 className="font-sans text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                {title}
-              </h4>
+              <h4 className="eyebrow">{title}</h4>
             )
           ) : null}
           {description ? (
-            <p className="text-xs text-muted-foreground">{description}</p>
+            <p className="text-[13px] text-ink-500">{description}</p>
           ) : null}
         </header>
       ) : null}

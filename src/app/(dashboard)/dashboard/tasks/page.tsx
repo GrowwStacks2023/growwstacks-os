@@ -178,7 +178,7 @@ export default async function TasksPage({
         title: (
           <Link
             href={`/dashboard/tasks/${t.id}`}
-            className="text-foreground hover:text-brand-700"
+            className="font-semibold text-ink-900 hover:text-blue-700"
           >
             {t.title}
           </Link>

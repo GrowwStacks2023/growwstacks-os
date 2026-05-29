@@ -13,8 +13,14 @@ export function Page({
 }) {
   return (
     <div
+      // Wide cap (1640px). Lists, the dashboard, and the Kanban share this
+      // shell so they breathe more on big monitors. Create/edit forms keep
+      // their own narrower centering — `FormCard` sets `max-w-[680px]
+      // mx-auto`, so a form sitting inside this wider container still
+      // looks centered, not stretched. Horizontal page padding (the gutter
+      // around `<main>` in the dashboard layout) is unchanged.
       className={cn(
-        "mx-auto flex w-full max-w-6xl flex-col gap-10",
+        "mx-auto flex w-full max-w-[1640px] flex-col gap-10",
         className
       )}
     >
@@ -45,12 +51,12 @@ export function Section({
         <div className="flex items-end justify-between gap-3">
           <div className="flex flex-col gap-1">
             {title ? (
-              <h2 className="font-display text-[20px] font-semibold leading-tight tracking-[-0.012em] text-foreground">
+              <h2 className="font-display text-[20px] font-semibold leading-tight tracking-[-0.02em] text-ink-900">
                 {title}
               </h2>
             ) : null}
             {description ? (
-              <p className="text-[14px] text-muted-foreground">{description}</p>
+              <p className="text-[14px] text-ink-500">{description}</p>
             ) : null}
           </div>
           {action ? <div className="shrink-0">{action}</div> : null}

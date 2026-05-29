@@ -35,7 +35,7 @@ export function PageHeader({
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex min-w-0 flex-col gap-2.5">
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="font-display text-[28px] sm:text-[32px] font-semibold leading-[1.1] tracking-[-0.012em] text-foreground">
+            <h1 className="font-display text-[28px] sm:text-[34px] font-bold leading-[1.1] tracking-[-0.02em] text-ink-900">
               {title}
             </h1>
             {meta ? (
@@ -45,7 +45,7 @@ export function PageHeader({
             ) : null}
           </div>
           {description ? (
-            <p className="max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
+            <p className="max-w-2xl text-[15px] leading-relaxed text-ink-500">
               {description}
             </p>
           ) : null}

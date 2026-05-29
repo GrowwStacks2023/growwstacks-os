@@ -1,8 +1,8 @@
 import Link from "next/link";
 
-import { Page, PageHeader } from "@/components/page-shell";
+import { Breadcrumbs, Page } from "@/components/page-shell";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { FormCard } from "@/components/form";
 import { createClient } from "@/lib/supabase/server";
 
 import { NewProjectForm } from "./new-project-form";
@@ -35,41 +35,40 @@ export default async function NewProjectPage() {
 
   return (
     <Page>
-      <PageHeader
-        breadcrumbs={[
+      <Breadcrumbs
+        trail={[
           { label: "Dashboard", href: "/dashboard" },
           { label: "Projects", href: "/dashboard/projects" },
           { label: "New project" },
         ]}
-        title="New project"
-        description="Spin up a delivery engagement for one of your companies."
       />
-      <Card className="w-full max-w-[640px]">
-        <CardContent className="pt-6">
-          {hasCompanies ? (
-            <NewProjectForm
-              companies={companies ?? []}
-              pmCandidates={pmCandidates ?? []}
-              contacts={(contacts ?? []).map((c) => ({
-                id: c.id,
-                name: c.name,
-                companyName: c.company?.name ?? null,
-              }))}
-            />
-          ) : (
-            <div className="flex flex-col gap-3">
-              <p className="text-sm text-muted-foreground">
-                Create a company first — every project has to belong to one.
-              </p>
-              <div>
-                <Button render={<Link href="/dashboard/companies/new" />}>
-                  Create company
-                </Button>
-              </div>
+      <FormCard
+        title="New project"
+        subtitle="Spin up a delivery engagement for one of your companies. Add milestones and tasks after the project exists."
+      >
+        {hasCompanies ? (
+          <NewProjectForm
+            companies={companies ?? []}
+            pmCandidates={pmCandidates ?? []}
+            contacts={(contacts ?? []).map((c) => ({
+              id: c.id,
+              name: c.name,
+              companyName: c.company?.name ?? null,
+            }))}
+          />
+        ) : (
+          <div className="flex flex-col gap-3">
+            <p className="text-[14px] text-ink-500">
+              Create a company first — every project has to belong to one.
+            </p>
+            <div>
+              <Button render={<Link href="/dashboard/companies/new" />}>
+                Create company
+              </Button>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </div>
+        )}
+      </FormCard>
     </Page>
   );
 }

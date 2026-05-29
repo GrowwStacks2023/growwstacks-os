@@ -1,152 +1,140 @@
-# GrowwStacks OS — Design system (v2)
+# GrowwStacks OS — Design System v3
 
-Short reference. Full source of truth is `src/app/globals.css`.
+Source of truth: `src/app/globals.css` + the CLAUDE_CODE_PROMPT spec.
 
-## Direction
+## Tokens
 
-**Confident product, modern professional.** Rich blue is the brand and
-dominates the identity. Green is an accent used sparingly on positive
-states. Warm-off-white page background, pure white card surfaces, calm
-slate neutrals for text and borders.
+### Brand BLUE
+| Token | Hex | Use |
+|-------|-----|-----|
+| `--blue-900` | `#0a2540` | sidebar bg base, headings (ink-900), primary text |
+| `--blue-800` | `#0f3a66` | sidebar gradient stop |
+| `--blue-700` | `#10519b` | primary button base |
+| `--blue-600` | `#1d6fd6` | links, primary hover, focus rings, KPI accent |
+| `--blue-100` | `#e6f0fb` | tinted badge fill |
+| `--blue-50`  | `#f1f7fe` | table header bg, row hover |
 
-Bricolage Grotesque headings over Geist Sans body, at a comfortably
-readable scale. Generous whitespace. Color carries hierarchy.
+### Brand GREEN (success / positive)
+| Token | Hex | Use |
+|-------|-----|-----|
+| `--green-700` | `#0b7a5b` | success badge text |
+| `--green-600` | `#0ea371` | progress-bar mid, success hover |
+| `--green-500` | `#16c088` | active-nav glow, brand-mark mid, KPI green accent |
+| `--green-100` | `#dcf7ec` | success badge bg |
+| `--green-50`  | `#edfbf4` | super-soft positive fill |
 
-**Hard rule:** blue dominates; green punctuates. They are NEVER visual
-equals on the same surface.
+### Cool-white neutrals (NOT cream)
+| Token | Hex | Use |
+|-------|-----|-----|
+| `--bg`           | `#f4f8fc` | app canvas |
+| `--surface`      | `#ffffff` | cards, tables, form fields |
+| `--line`         | `#e3ecf5` | hairlines / borders |
+| `--line-strong`  | `#d2e0ee` | form-field borders, ghost button border |
+
+### Text
+| Token | Hex | Use |
+|-------|-----|-----|
+| `--ink-900` | `#0a2540` | primary / headings |
+| `--ink-700` | `#324a63` | body |
+| `--ink-500` | `#5d748c` | muted, secondary |
+| `--ink-400` | `#8aa0b6` | faint labels, breadcrumb trail (never body) |
+
+### Semantic
+| Token | Hex | Use |
+|-------|-----|-----|
+| `--amber-600` | `#c77700` | warning text (medium / on hold / expected) |
+| `--amber-100` | `#fdf0d9` | warning fill |
+| `--red-600` | `#d23b3b` | danger text (blocked / urgent / overdue) |
+| `--red-100` | `#fbe3e3` | danger fill |
+| `--violet-600` | `#6b4ed8` | review / proposal-sent |
+| `--violet-100` | `#ece7fb` | review / proposal-sent fill |
+
+### Shape & shadow
+- `--radius` 14px (cards, tables)
+- `--radius-sm` 10px (buttons, inputs, badges)
+- `--shadow-sm` `0 1px 2px rgba(10,37,64,.05), 0 1px 3px rgba(10,37,64,.06)`
+- `--shadow-md` `0 6px 20px -8px rgba(10,37,64,.18), 0 2px 6px rgba(10,37,64,.06)`
+- `--shadow-primary` `0 4px 14px -4px rgba(29,111,214,.55)` (primary button)
 
 ## Typography
 
-Loaded via `next/font/google` in `src/app/layout.tsx`. CSS variables
-exposed: `--font-sans`, `--font-display`, `--font-mono`.
+- **Display** (h1–h4, page titles, card titles, KPI values, brand): **Space Grotesk** 500–700, `letter-spacing: -0.02em`. Loaded via `next/font` as `--font-display`.
+- **Body** (UI, table cells, buttons, labels): **Plus Jakarta Sans** 400–700, `letter-spacing: -0.01em`. Loaded as `--font-sans`.
+- **Numerics** (amounts, IDs, references, KPI values): **JetBrains Mono** 400–600, `font-feature-settings: "tnum"`. Loaded as `--font-mono`. Use the `.font-numeric` utility.
 
-| Role | Family | Weight | Size | Line height | Tracking |
-|------|--------|-------:|-----:|-----:|---------:|
-| Display / H1 | Bricolage Grotesque | 600 | 28–32px | 1.1 | -0.012em |
-| H2 | Bricolage Grotesque | 600 | 24px | 1.18 | -0.012em |
-| H3 / card title | Bricolage Grotesque | 600 | 20px | 1.25 | -0.012em |
-| H4 / section heading | Bricolage Grotesque | 600 | 17px | 1.3 | -0.012em |
-| Body | Geist Sans | 400/500 | **16px** | 1.55 | 0 |
-| Small | Geist Sans | 400/500 | 14px | 1.5 | 0 |
-| Caption / eyebrow | Geist Sans | 600 | 12px | 1.4 | 0.06em |
-| Numeric | Geist Mono | 500 | varies | – | – |
+### Scale
+| Role | Family | Size | Weight |
+|------|--------|------|--------|
+| Page title (h1) | Space Grotesk | 34px | 700 |
+| Card title (h2) | Space Grotesk | 18px | 600 |
+| KPI value | Space Grotesk (numbers via mono) | 27px | 600 |
+| Section heading (h3) | Space Grotesk | 16px | 600 |
+| Body | Plus Jakarta Sans | 15px | 400/500 |
+| Small | Plus Jakarta Sans | 13px | 400/500 |
+| Eyebrow / column headers / KPI labels | Plus Jakarta Sans | 10.5px / 600–700 / `letter-spacing: 0.12em` / uppercase / `color: --ink-400` |
+| Numerics | JetBrains Mono | varies | 500 |
 
-- Body bumped from 14 → **16px** (this directly addresses "fonts too
-  small"). Use Tailwind `text-base` (= 16px) for body, `text-sm` (14px)
-  for secondary copy, `text-xs` (12px) for captions/eyebrows.
-- All headings auto-pick Bricolage via the `h1`/`h2`/`h3`/`h4` selectors
-  in `@layer base`. For non-heading display text use the `font-display`
-  utility.
-- Bricolage variable axes used: `opsz` (optical size, scaled with the
-  heading), `wdth` (kept at 100 — neutral width).
+`--ink-400` is reserved for eyebrows and faint labels. **Never** body text (contrast rule).
 
-## Palette
+## Components
 
-### Brand BLUE — dominant
+### Sidebar (264px)
+- Background: `linear-gradient(180deg, #0a2540, #0c2f52)` (use `.sidebar-bg`).
+- Text: `#a9c2da`.
+- Active nav: `.sidebar-active-pill` gradient + 3px green left-inset glow + soft green inner shadow + white text + `--green-500` icon.
+- Hover: `rgba(255,255,255,.05)`, white text.
+- Brand mark: rounded square with `linear-gradient(135deg, --blue-600, --green-500)`, white **G**.
+- Right edge: thin green-glow vertical line.
 
-Deep cobalt / royal. oklch hue 248–260.
+### Buttons
+- **Primary**: `.btn-primary-gradient` → `linear-gradient(135deg, --blue-700, --blue-600)`, white text, radius 10px, brand-glow shadow. Hover brightens.
+- **Secondary / ghost**: white bg, `--line-strong` border, `--ink-700` text. Hover → border + text `--blue-600/700`.
+- All ex-terracotta buttons replaced with the primary gradient.
 
-| Token | Use |
-|-------|-----|
-| `brand-50` / `brand-100` | Tints — section backgrounds, sparingly |
-| `brand-200` / `brand-300` | Sidebar borders, subtle accents |
-| `brand-500` | **Focus ring**, link color, key emphasis |
-| `brand-600` | **Primary button** background. ~5.5:1 against white |
-| `brand-700` | Primary hover, big-number display, brand wordmark |
-| `brand-800` / `brand-900` | **Sidebar surface** (full blue chrome), deep emphasis |
+### Cards
+- White bg, `1px solid --line`, radius 14px, `--shadow-sm`.
+- **KPI cards**: add a 3px left accent bar via `.kpi-card[data-accent=blue|green|amber|violet]`.
 
-### Accent GREEN — positives only
+### Tables
+- Header row: `--blue-50` bg, eyebrow style labels (10.5px uppercase `--ink-400` 600).
+- Rows: 13px vertical padding, hairline separators (`--line`), hover bg `--blue-50`.
+- Primary cell text `--ink-900` weight 600; secondary 12px `--ink-400`.
+- Money values use `.font-numeric`.
 
-| Token | Use |
-|-------|-----|
-| `success-50` / `success-100` | Success badge backgrounds |
-| `success-500` / `success-600` | Won-deal / received-payment / done badges, positive-delta dot |
-| `success-700` | Dark mode success text |
-
-**Don't:** primary button background, headline color, large surface
-fill. Green stays small and meaningful.
-
-### Surfaces
-
-- `--background` warm off-white (oklch 0.985 hue 80) — paper, not clinical
-- `--card` pure white — cards lift off the page
-- `--foreground` deep ink with a hint of brand blue
-- `--border` cool pale slate
-
-### Status — semantic, intentional
-
-Status badges (`src/lib/status-colors.ts`) use Tailwind named colors so
-the meaning carries:
-
-- Neutral / idle → `slate`
-- In progress / qualified / proposal → `blue` / `indigo`
-- On hold / expected / negotiation / high priority → `amber`
-- Done / received / won → `green` (the success accent — only here, not
-  on plain "saved" toasts)
-- Blocked / lost / refunded → `red`
-- Review → `purple`
-
-## Spacing
-
-Tailwind's 4-based scale, used consistently.
-
-- Page outer padding: `px-8 py-10`
-- Page max-width: `max-w-6xl`
-- Section gap (between page-header + sections): `gap-10`
-- Card inner padding: `p-6`
-- Form field gap: `gap-5` between fields, `gap-2` between label and input
-- Cluster gap (badge row, button row): `gap-2`
-
-## Radius / shadow
-
-- Cards: `--radius-lg` (10px). Hairline border + a soft 0–1px shadow
-  that reads as "lift" not "drop".
-- Buttons: `--radius-md` (8px). Primary button gets the `.btn-primary-shadow` inset highlight + outer drop.
-- Inputs / selects / textareas: `--radius-md` (8px). Same h-10 across
-  all of them.
-- Pills/badges: `--radius-2xl` (18px).
-
-## Where each color appears
-
-| Surface | Color |
+### Badges (status / priority / stage)
+Pill, 12px / 600 / radius 10px, **with a 6px leading dot** (`.badge-dot`).
+| Meaning | Style |
 |---------|-------|
-| Page background | warm off-white |
-| Card | pure white |
-| Sidebar (the whole chrome) | brand-900 (deep navy) |
-| Sidebar active link | brand-700 background + white text + white left mark |
-| Primary button | brand-600 → hover brand-700 |
-| Secondary button | white card with hairline + foreground text |
-| Page title | foreground deep ink |
-| Link / focus ring | brand-500 |
-| Big numbers on dashboard tiles | brand-700 |
-| "Won" deal badge / "Received" payment / "Done" task | success-* via status-colors |
-| Positive-delta dot | success-500 |
+| Active / Received / Done / positive | `bg-green-100 text-green-700` |
+| New / Qualified / In progress / info | `bg-blue-100 text-blue-700` |
+| Review / Proposal sent | `bg-violet-100 text-violet-600` |
+| Medium / High / On hold / Expected | `bg-amber-100 text-amber-600` |
+| Blocked / Urgent / Overdue | `bg-red-100 text-red-600` |
+| Todo / neutral | `bg-[#eef3f8] text-ink-500` |
 
-## Shared primitives
+Overdue due-dates: text `--red-600` weight 600 (not a badge — just the cell).
 
-Layout (`src/components/page-shell/`):
-- `<Page>` outer container, `<Section>` labelled chunk
-- `<PageHeader>` title + description + meta + action + breadcrumbs
-- `<Breadcrumbs>` persistent trail
-- `<PageLoader>` branded loader
+### Forms
+Every form uses the centered-card layout (`FormCard` primitive). Title + subtitle sit **inside** the card as its heading; only the breadcrumb stays at the page top. Max-width 680px, `--shadow-md`, hairline separator before the field stack.
+- Inputs / selects / textareas: white bg, `--line-strong` border, radius 10px, 15px text.
+- Focus: 2px `--blue-600` ring at 40% opacity.
+- Custom select chevron (replacing the native).
+- Field labels: 14px / 600.
+- Required → small `--blue-600` asterisk.
+- Footer actions right-aligned: ghost "Cancel" + primary "Confirm".
 
-Forms (`src/components/form/`):
-- `<Field>` label + input wrapper
-- `<FormRow>` two/three column grid (collapses on narrow)
-- `<FormSection>` labelled group
-- `<FormActions>` button row
+### Breadcrumbs
+`--ink-400` trail, current page `--blue-700`, `›` separators.
 
-Lists (`src/components/responsive-list/`):
-- `<ResponsiveList>` table on wide, card stack on narrow. One mechanism
-  used by EVERY list page (companies, contacts, projects, tasks, payments).
+### Progress (milestones)
+Use `.progress-track` + `.progress-fill` — 6px track in `--line`, fill `linear-gradient(90deg, --blue-600, --green-500)`.
+
+### Focus rings
+2px `--blue-600` at 40% opacity, applied via `outline-ring/50` on the `*` selector. Hairlines/dividers always `--line`.
 
 ## Don'ts
 
-- **Don't** put blue and green at equal weight on a page. Blue is the
-  brand; green is the accent.
-- **Don't** use green for "saved" toasts, "primary button", or large
-  surface fills. It's the won/received/done indicator only.
-- **Don't** introduce a second card style. Refactor the shared one.
-- **Don't** sprinkle brand-* across status badges. Status is semantic.
-- **Don't** make body smaller than 16px. The previous round was rejected
-  for being too small; we hold the line.
+- **Don't** use cream (`#fdf8f0`) or terracotta (`#b3441f`) anywhere.
+- **Don't** use `--ink-400` for body text. Eyebrows only.
+- **Don't** sprinkle `--green-500` across the UI — accent only (success badges, active-nav glow, brand-mark mid, KPI green accent).
+- **Don't** add a second card style. Refactor the shared one.

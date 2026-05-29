@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
 
-import { Page, PageHeader } from "@/components/page-shell";
+import { Breadcrumbs, Page } from "@/components/page-shell";
 import { NewTaskForm } from "@/components/tasks/new-task-form";
-import { Card, CardContent } from "@/components/ui/card";
+import { FormCard } from "@/components/form";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function NewTaskPage({
@@ -34,8 +34,8 @@ export default async function NewTaskPage({
 
   return (
     <Page>
-      <PageHeader
-        breadcrumbs={[
+      <Breadcrumbs
+        trail={[
           { label: "Dashboard", href: "/dashboard" },
           { label: "Projects", href: "/dashboard/projects" },
           {
@@ -48,30 +48,29 @@ export default async function NewTaskPage({
           },
           { label: "New task" },
         ]}
+      />
+      <FormCard
         title="New task"
-        description={
+        subtitle={
           <>
             Under milestone{" "}
-            <span className="font-medium">{milestone.name}</span>
+            <span className="font-semibold text-ink-900">{milestone.name}</span>
             {milestone.project?.name ? (
               <>
                 {" "}· in{" "}
-                <span className="font-medium">{milestone.project.name}</span>
+                <span className="font-semibold text-ink-900">{milestone.project.name}</span>
               </>
             ) : null}
             .
           </>
         }
-      />
-      <Card className="w-full max-w-[640px]">
-        <CardContent className="pt-6">
-          <NewTaskForm
-            context={{ kind: "milestone", projectId: id, milestoneId }}
-            assignees={assignees ?? []}
-            cancelHref={`/dashboard/projects/${id}`}
-          />
-        </CardContent>
-      </Card>
+      >
+        <NewTaskForm
+          context={{ kind: "milestone", projectId: id, milestoneId }}
+          assignees={assignees ?? []}
+          cancelHref={`/dashboard/projects/${id}`}
+        />
+      </FormCard>
     </Page>
   );
 }

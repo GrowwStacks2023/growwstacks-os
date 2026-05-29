@@ -5,6 +5,7 @@ import { Page, PageHeader } from "@/components/page-shell";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -22,6 +23,7 @@ import { userDisplay } from "@/lib/display";
 import {
   DEAL_STAGE,
   DEAL_STAGE_ORDER,
+  PROJECT_STATUS,
   TASK_PRIORITY,
   TASK_STATUS,
 } from "@/lib/status-colors";
@@ -90,6 +92,35 @@ type PipelineDeal = {
   value_usd: number | null;
 };
 
+// Reusable KPI tile per spec — left accent bar via .kpi-card[data-accent],
+// eyebrow label, big display value.
+function KpiTile({
+  accent,
+  label,
+  value,
+  helper,
+}: {
+  accent: "blue" | "green" | "amber" | "violet";
+  label: string;
+  value: React.ReactNode;
+  helper?: React.ReactNode;
+}) {
+  return (
+    <div
+      data-accent={accent}
+      className="kpi-card flex flex-col gap-2 rounded-[14px] border border-line bg-white p-5 shadow-[0_1px_2px_rgba(10,37,64,0.05),0_1px_3px_rgba(10,37,64,0.06)]"
+    >
+      <span className="eyebrow">{label}</span>
+      <div className="font-display text-[27px] font-semibold leading-none tracking-[-0.02em] text-ink-900">
+        {value}
+      </div>
+      {helper ? (
+        <div className="text-[13px] text-ink-500">{helper}</div>
+      ) : null}
+    </div>
+  );
+}
+
 export default async function DashboardPage() {
   const supabase = await createClient();
   const {
@@ -113,9 +144,6 @@ export default async function DashboardPage() {
   const role = profile?.role;
   const canSeePipeline = role ? PIPELINE_ROLES.has(role) : false;
 
-  // Fire independent queries in parallel. The active-projects query is NOT
-  // role-filtered — RLS already scopes it (developers see only projects they
-  // have a task in via user_has_task_in_project; admin/sales/pm see all).
   const dealsPromise = canSeePipeline
     ? supabase.from("deals").select("stage, value_inr, value_usd")
     : null;
@@ -129,8 +157,6 @@ export default async function DashboardPage() {
       )
       .eq("assignee_id", user.id)
       .neq("status", "done")
-      // due_at ascending + nulls last gives us: overdue (past dates) first,
-      // then upcoming soonest-first, then undated tasks at the bottom.
       .order("due_at", { ascending: true, nullsFirst: false })
       .limit(TASK_DISPLAY_LIMIT),
     supabase
@@ -150,8 +176,6 @@ export default async function DashboardPage() {
   const activeProjects = (projectsResult.data ?? []) as ActiveProjectRow[];
   const activeProjectIds = activeProjects.map((p) => p.id);
 
-  // Single milestones query for all active projects — group in memory so we
-  // never query inside the render loop. This is the N+1 avoidance.
   const milestoneStats = new Map<string, { total: number; completed: number }>();
   if (activeProjectIds.length > 0) {
     const { data: milestones } = await supabase
@@ -185,14 +209,9 @@ export default async function DashboardPage() {
     stat.usd += d.value_usd ? Number(d.value_usd) : 0;
   }
 
-  // Server Component renders once per request, so reading "now" once is
-  // deterministic for this render. The purity rule can't tell Server from
-  // Client Components apart, so silence it here.
   // eslint-disable-next-line react-hooks/purity
   const now = Date.now();
 
-  // KPI tile values — blue numbers, green positive-delta dot where there's
-  // genuinely something to celebrate.
   const openTasksCount = openTasks.length + moreTasks;
   const activeProjectsCount = activeProjects.length;
   const pipelineCount = pipelineDeals.length;
@@ -203,108 +222,95 @@ export default async function DashboardPage() {
     pipelineUsd += d.value_usd ? Number(d.value_usd) : 0;
   }
 
+  const pipelineValue =
+    pipelineInr > 0
+      ? inrFormatter.format(pipelineInr)
+      : pipelineUsd > 0
+      ? usdFormatter.format(pipelineUsd)
+      : "—";
+
   return (
     <Page>
-      {/* Dashboard root — no breadcrumbs since this IS Dashboard. */}
       <PageHeader
         title="Dashboard"
         description={`Welcome back, ${displayName}.`}
       />
 
-      {/* ── KPI tiles ─────────────────────────────────────────────────
-         Three (or four with pipeline) clean tiles using big blue numbers
-         in the display font. Active-projects tile gets a small green
-         dot — the only positive-state accent on the page. */}
+      {/* ── KPI tiles per spec ──────────────────────────────────────── */}
       <div
         className={`grid grid-cols-2 gap-4 ${
           canSeePipeline ? "lg:grid-cols-4" : "lg:grid-cols-3"
         }`}
       >
-        <Card>
-          <CardContent className="flex flex-col gap-1.5">
-            <div className="text-[12px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
-              My open tasks
-            </div>
-            <div className="font-display text-[32px] font-semibold leading-none tracking-[-0.012em] text-brand-700">
-              {openTasksCount}
-            </div>
-            <div className="text-[13px] text-muted-foreground">
-              Across all your assignments
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex flex-col gap-1.5">
-            <div className="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
-              <span
-                aria-hidden
-                className="size-2 rounded-full bg-success-500"
-              />
-              Active projects
-            </div>
-            <div className="font-display text-[32px] font-semibold leading-none tracking-[-0.012em] text-brand-700">
-              {activeProjectsCount}
-            </div>
-            <div className="text-[13px] text-muted-foreground">In flight right now</div>
-          </CardContent>
-        </Card>
+        <KpiTile
+          accent="blue"
+          label="My open tasks"
+          value={<span className="font-numeric">{openTasksCount}</span>}
+          helper="Across all your assignments"
+        />
+        <KpiTile
+          accent="green"
+          label="Active projects"
+          value={<span className="font-numeric">{activeProjectsCount}</span>}
+          helper="In flight right now"
+        />
         {canSeePipeline ? (
           <>
-            <Card>
-              <CardContent className="flex flex-col gap-1.5">
-                <div className="text-[12px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
-                  Pipeline deals
-                </div>
-                <div className="font-display text-[32px] font-semibold leading-none tracking-[-0.012em] text-brand-700">
-                  {pipelineCount}
-                </div>
-                <div className="text-[13px] text-muted-foreground">
-                  Open opportunities
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="flex flex-col gap-1.5">
-                <div className="text-[12px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
-                  Pipeline value
-                </div>
-                <div className="font-numeric text-[18px] font-semibold leading-tight text-brand-700">
-                  {pipelineInr > 0 ? inrFormatter.format(pipelineInr) : "—"}
-                </div>
-                <div className="font-numeric text-[14px] leading-tight text-muted-foreground">
-                  {pipelineUsd > 0 ? usdFormatter.format(pipelineUsd) : "—"}
-                </div>
-              </CardContent>
-            </Card>
+            {/*
+              KPI accent order mirrors the Dashboard.html reference: b/g/a/v.
+              Position 3 (amber) = the currency value tile; position 4
+              (violet) = the count of active deals.
+            */}
+            <KpiTile
+              accent="amber"
+              label="Pipeline value"
+              value={
+                <span className="font-numeric text-[22px]">{pipelineValue}</span>
+              }
+              helper={
+                pipelineInr > 0 && pipelineUsd > 0
+                  ? `+ ${usdFormatter.format(pipelineUsd)}`
+                  : "Across all open stages"
+              }
+            />
+            <KpiTile
+              accent="violet"
+              label="Pipeline deals"
+              value={<span className="font-numeric">{pipelineCount}</span>}
+              helper="Open opportunities"
+            />
           </>
         ) : (
-          <Card>
-            <CardContent className="flex flex-col gap-1.5">
-              <div className="text-[12px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
-                Your role
-              </div>
-              <div className="font-display text-[24px] font-semibold capitalize leading-none text-brand-700">
-                {role ?? "—"}
-              </div>
-              <div className="text-[13px] text-muted-foreground">
-                Access scoped to your role
-              </div>
-            </CardContent>
-          </Card>
+          <KpiTile
+            accent="violet"
+            label="Your role"
+            value={
+              <span className="capitalize text-[22px]">{role ?? "—"}</span>
+            }
+            helper="Access scoped to your role"
+          />
         )}
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">My open tasks</CardTitle>
+            <CardTitle>My open tasks</CardTitle>
             <CardDescription>
               Assigned to you, sorted by due date. Overdue first.
             </CardDescription>
+            <CardAction>
+              <Link
+                href="/dashboard/tasks"
+                className="text-[13px] font-semibold text-blue-700 underline-offset-2 hover:underline"
+              >
+                View all
+              </Link>
+            </CardAction>
           </CardHeader>
           {openTasks.length === 0 ? (
             <CardContent>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-[14px] text-ink-500">
                 No open tasks assigned to you.
               </p>
             </CardContent>
@@ -314,10 +320,20 @@ export default async function DashboardPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="pl-4">Task</TableHead>
+                      <TableHead className="pl-6">Task</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Priority</TableHead>
-                      <TableHead className="pr-4">Due</TableHead>
+                      {/*
+                        Card sits in a 2-col grid at lg+. At lg the column is
+                        tight, so Priority + Due hide; Due collapses into the
+                        title's secondary line. They return at xl+ where each
+                        card has ~570px to play with.
+                      */}
+                      <TableHead className="hidden xl:table-cell">
+                        Priority
+                      </TableHead>
+                      <TableHead className="hidden pr-6 xl:table-cell">
+                        Due
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -327,18 +343,41 @@ export default async function DashboardPage() {
                       const overdue = task.due_at
                         ? new Date(task.due_at).getTime() < now
                         : false;
+                      const dueLabel = task.due_at
+                        ? formatDate(task.due_at)
+                        : null;
                       return (
                         <TableRow key={task.id}>
-                          <TableCell className="pl-4">
+                          <TableCell className="pl-6 whitespace-normal">
                             <Link
                               href={`/dashboard/projects/${task.project_id}`}
                               className="block hover:underline"
                             >
-                              <div className="font-medium leading-tight">
+                              <div className="font-semibold leading-tight text-ink-900">
                                 {task.title}
                               </div>
-                              <div className="text-xs text-muted-foreground">
-                                {task.project?.name ?? "—"}
+                              <div className="text-[12px] text-ink-400">
+                                <span>{task.project?.name ?? "—"}</span>
+                                {/*
+                                  Due collapses here only at lg (when the Due
+                                  column itself is hidden). At <lg the card
+                                  is full-width and the Due column shows; at
+                                  xl+ same.
+                                */}
+                                {dueLabel ? (
+                                  <span className="xl:hidden">
+                                    {" · "}
+                                    <span
+                                      className={
+                                        overdue
+                                          ? "font-numeric font-semibold text-red-600"
+                                          : "font-numeric"
+                                      }
+                                    >
+                                      Due {dueLabel}
+                                    </span>
+                                  </span>
+                                ) : null}
                               </div>
                             </Link>
                           </TableCell>
@@ -350,7 +389,7 @@ export default async function DashboardPage() {
                               {status.label}
                             </Badge>
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="hidden xl:table-cell">
                             <Badge
                               variant={priority.variant}
                               className={priority.className}
@@ -359,13 +398,13 @@ export default async function DashboardPage() {
                             </Badge>
                           </TableCell>
                           <TableCell
-                            className={
+                            className={`hidden xl:table-cell ${
                               overdue
-                                ? "pr-4 font-medium text-red-600 dark:text-red-400"
-                                : "pr-4 text-muted-foreground"
-                            }
+                                ? "pr-6 font-numeric font-semibold text-red-600"
+                                : "pr-6 font-numeric text-ink-500"
+                            }`}
                           >
-                            {task.due_at ? formatDate(task.due_at) : "—"}
+                            {dueLabel ?? "—"}
                           </TableCell>
                         </TableRow>
                       );
@@ -374,7 +413,7 @@ export default async function DashboardPage() {
                 </Table>
               </CardContent>
               {moreTasks > 0 ? (
-                <CardContent className="border-t pt-3 text-xs text-muted-foreground">
+                <CardContent className="border-t border-line pt-3 text-[12px] text-ink-500">
                   …and {moreTasks} more open task{moreTasks === 1 ? "" : "s"}.
                 </CardContent>
               ) : null}
@@ -382,23 +421,31 @@ export default async function DashboardPage() {
           )}
         </Card>
 
+        {/*
+          Right column per the Dashboard.html reference: ONE card holding
+          two tables separated by a hairline. Active projects on top, then
+          a `border-t border-line` divider, then Pipeline snapshot — only
+          when the role can see it. This replaces the previous pattern of
+          a separate full-width Pipeline card below the grid.
+        */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Active projects</CardTitle>
+            <CardTitle>Active projects</CardTitle>
             <CardDescription>
-              Engagements currently in flight.{" "}
+              Engagements currently in flight.
+            </CardDescription>
+            <CardAction>
               <Link
                 href="/dashboard/projects"
-                className="underline hover:text-foreground"
+                className="text-[13px] font-semibold text-blue-700 underline-offset-2 hover:underline"
               >
                 View all
               </Link>
-              .
-            </CardDescription>
+            </CardAction>
           </CardHeader>
           {activeProjects.length === 0 ? (
             <CardContent>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-[14px] text-ink-500">
                 No active projects.
               </p>
             </CardContent>
@@ -407,10 +454,9 @@ export default async function DashboardPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="pl-4">Project</TableHead>
-                    <TableHead>PM</TableHead>
-                    <TableHead>Milestones</TableHead>
-                    <TableHead className="pr-4">Target end</TableHead>
+                    <TableHead className="pl-6">Project</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="pr-6">Progress</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -419,41 +465,71 @@ export default async function DashboardPage() {
                       total: 0,
                       completed: 0,
                     };
-                    const pmDisplay = userDisplay(project.pm, "—");
                     const pastDue = project.expected_end_at
                       ? new Date(project.expected_end_at).getTime() < now
                       : false;
+                    const pct =
+                      stat.total > 0
+                        ? Math.round((stat.completed / stat.total) * 100)
+                        : 0;
+                    const targetLabel = project.expected_end_at
+                      ? formatDate(project.expected_end_at)
+                      : null;
+                    // The dashboard query filters `status = 'active'`, so
+                    // every row here is by definition Active. We render the
+                    // PROJECT_STATUS["active"] badge directly rather than
+                    // expanding the SELECT — a presentational match for the
+                    // reference structure without a query change.
+                    const statusVisual = PROJECT_STATUS["active"];
                     return (
                       <TableRow key={project.id}>
-                        <TableCell className="pl-4">
+                        <TableCell className="pl-6 whitespace-normal">
                           <Link
                             href={`/dashboard/projects/${project.id}`}
                             className="block hover:underline"
                           >
-                            <div className="font-medium leading-tight">
+                            <div className="font-semibold leading-tight text-ink-900">
                               {project.name}
                             </div>
-                            <div className="text-xs text-muted-foreground">
-                              {project.company?.name ?? "—"}
+                            <div className="text-[12px] text-ink-400">
+                              <span>{project.company?.name ?? "—"}</span>
+                              {targetLabel ? (
+                                <>
+                                  {" · "}
+                                  <span
+                                    className={
+                                      pastDue
+                                        ? "font-numeric font-semibold text-red-600"
+                                        : "font-numeric"
+                                    }
+                                  >
+                                    due {targetLabel}
+                                  </span>
+                                </>
+                              ) : null}
                             </div>
                           </Link>
                         </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {pmDisplay}
+                        <TableCell>
+                          <Badge
+                            variant={statusVisual.variant}
+                            className={statusVisual.className}
+                          >
+                            {statusVisual.label}
+                          </Badge>
                         </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {stat.completed} of {stat.total}
-                        </TableCell>
-                        <TableCell
-                          className={
-                            pastDue
-                              ? "pr-4 font-medium text-red-600 dark:text-red-400"
-                              : "pr-4 text-muted-foreground"
-                          }
-                        >
-                          {project.expected_end_at
-                            ? formatDate(project.expected_end_at)
-                            : "—"}
+                        <TableCell className="pr-6">
+                          <div className="flex items-center gap-3">
+                            <div className="progress-track w-20 shrink-0">
+                              <div
+                                className="progress-fill"
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                            <span className="font-numeric text-[12px] text-ink-500">
+                              {stat.completed}/{stat.total}
+                            </span>
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
@@ -462,65 +538,70 @@ export default async function DashboardPage() {
               </Table>
             </CardContent>
           )}
+
+          {/*
+            Pipeline snapshot lives INSIDE the same card. Separated by a
+            single hairline. Role-gated — devs/clients see only Active
+            projects above and no pipeline below.
+          */}
+          {canSeePipeline ? (
+            <>
+              <div className="border-t border-line" />
+              <CardHeader>
+                <CardTitle>Pipeline snapshot</CardTitle>
+                <CardDescription>Deals by stage.</CardDescription>
+                <CardAction>
+                  <Link
+                    href="/dashboard/deals"
+                    className="text-[13px] font-semibold text-blue-700 underline-offset-2 hover:underline"
+                  >
+                    View pipeline
+                  </Link>
+                </CardAction>
+              </CardHeader>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="pl-6">Stage</TableHead>
+                      <TableHead>Deals</TableHead>
+                      <TableHead className="pr-6">Value</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {DEAL_STAGE_ORDER.map((stage) => {
+                      const stageVisual = DEAL_STAGE[stage];
+                      const stat = pipelineByStage.get(stage) ?? {
+                        count: 0,
+                        inr: 0,
+                        usd: 0,
+                      };
+                      return (
+                        <TableRow key={stage}>
+                          <TableCell className="pl-6">
+                            <Badge
+                              variant={stageVisual.variant}
+                              className={stageVisual.className}
+                            >
+                              {stageVisual.label}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="font-numeric text-ink-700">
+                            {stat.count}
+                          </TableCell>
+                          <TableCell className="pr-6 font-numeric text-ink-700">
+                            {formatStageTotal(stat.inr, stat.usd)}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </>
+          ) : null}
         </Card>
       </div>
-
-      {canSeePipeline ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Pipeline snapshot</CardTitle>
-            <CardDescription>
-              Deals by stage.{" "}
-              <Link
-                href="/dashboard/deals"
-                className="underline hover:text-foreground"
-              >
-                View pipeline
-              </Link>
-              .
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="pl-4">Stage</TableHead>
-                  <TableHead>Deals</TableHead>
-                  <TableHead className="pr-4">Total value</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {DEAL_STAGE_ORDER.map((stage) => {
-                  const stageVisual = DEAL_STAGE[stage];
-                  const stat = pipelineByStage.get(stage) ?? {
-                    count: 0,
-                    inr: 0,
-                    usd: 0,
-                  };
-                  return (
-                    <TableRow key={stage}>
-                      <TableCell className="pl-4">
-                        <Badge
-                          variant={stageVisual.variant}
-                          className={stageVisual.className}
-                        >
-                          {stageVisual.label}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {stat.count}
-                      </TableCell>
-                      <TableCell className="pr-4 text-muted-foreground">
-                        {formatStageTotal(stat.inr, stat.usd)}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      ) : null}
     </Page>
   );
 }

@@ -16,31 +16,26 @@ type StatusVisual = {
   label: string;
 };
 
-// Tailwind palettes used for finer-grained colour than the 6 built-in variants
-// offer. Kept here (not in badge.tsx) so the badge primitive stays stack-agnostic.
-//
-// Identity v2 uses a cool blue/white palette, so neutrals go back to `slate`
-// (cool grey) to read as part of the same family. Semantic colors stay
-// universal: green for done/received/won, amber for in-flight/expected,
-// red for blocked/lost. Subtle ring + dark-mode treatments make the chips
-// feel intentional rather than rectangular fills.
+// v3 spec palette — pulled directly from the design tokens in
+// src/app/globals.css. Each pill leads with a 6px badge-dot (rendered by
+// the Badge primitive), so the className only needs to set background +
+// text color. The dot inherits `currentColor`.
 const COLOR = {
-  slate:
-    "bg-slate-100 text-slate-700 ring-1 ring-inset ring-slate-200/60 dark:bg-slate-500/20 dark:text-slate-200 dark:ring-slate-400/20",
-  blue:
-    "bg-blue-100 text-blue-700 ring-1 ring-inset ring-blue-200/70 dark:bg-blue-500/20 dark:text-blue-200 dark:ring-blue-400/20",
-  indigo:
-    "bg-indigo-100 text-indigo-700 ring-1 ring-inset ring-indigo-200/70 dark:bg-indigo-500/20 dark:text-indigo-200 dark:ring-indigo-400/20",
-  amber:
-    "bg-amber-100 text-amber-800 ring-1 ring-inset ring-amber-200/80 dark:bg-amber-500/20 dark:text-amber-200 dark:ring-amber-400/20",
-  green:
-    "bg-emerald-100 text-emerald-700 ring-1 ring-inset ring-emerald-200/80 dark:bg-emerald-500/20 dark:text-emerald-200 dark:ring-emerald-400/20",
-  red:
-    "bg-red-100 text-red-700 ring-1 ring-inset ring-red-200/70 dark:bg-red-500/20 dark:text-red-200 dark:ring-red-400/20",
-  purple:
-    "bg-violet-100 text-violet-700 ring-1 ring-inset ring-violet-200/70 dark:bg-violet-500/20 dark:text-violet-200 dark:ring-violet-400/20",
-  zinc:
-    "bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-200/50 dark:bg-slate-500/15 dark:text-slate-300 dark:ring-slate-400/15",
+  // Positive / active / done / received / won
+  green: "bg-green-100 text-green-700",
+  // New / Qualified / In progress / info
+  blue: "bg-blue-100 text-blue-700",
+  // Review / Proposal sent
+  indigo: "bg-violet-100 text-violet-600",
+  purple: "bg-violet-100 text-violet-600",
+  // Medium / High / On hold / Expected
+  amber: "bg-amber-100 text-amber-600",
+  // Blocked / Urgent / Overdue
+  red: "bg-red-100 text-red-600",
+  // Todo / neutral default
+  slate: "bg-[#eef3f8] text-ink-500",
+  // Light neutral (source chips, low priority)
+  zinc: "bg-[#eef3f8] text-ink-500",
 } as const;
 
 export const PROJECT_STATUS: Record<ProjectStatus, StatusVisual> = {
@@ -96,7 +91,7 @@ export const DEAL_STAGE_ORDER: readonly DealStage[] = [
 ] as const;
 
 export const DEAL_STAGE: Record<DealStage, StatusVisual> = {
-  new: { variant: "outline", className: COLOR.slate, label: "New" },
+  new: { variant: "outline", className: COLOR.blue, label: "New" },
   qualified: { variant: "outline", className: COLOR.blue, label: "Qualified" },
   proposal_sent: {
     variant: "outline",
