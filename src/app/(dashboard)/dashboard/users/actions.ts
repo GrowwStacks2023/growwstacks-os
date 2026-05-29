@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
 
 type Role = Database["public"]["Enums"]["user_role"];
+type AdminClient = ReturnType<typeof createAdminClient>;
 
 const ROLES: ReadonlyArray<Role> = [
   "admin",
@@ -27,27 +28,70 @@ function isEmail(v: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 }
 
+// Where the invite link drops the user after they click it. Currently
+// hardcoded to the deployed URL with a NEXT_PUBLIC_SITE_URL override; the
+// actual /auth/callback route doesn't exist yet (Task 23 will build it).
+// Until it does, Supabase's project-level Site URL setting is the
+// effective fallback.
+//
+// TODO: make this fully env-driven when we add a staging environment so
+// each deploy can target its own redirect — for now one prod URL is fine.
+function siteUrl(): string {
+  return (
+    process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
+    "https://growwstacks-os.vercel.app"
+  );
+}
+
+// Poll public.users until the row created by the handle_new_user trigger
+// is visible to PostgREST. The trigger fires synchronously inside the
+// auth.users INSERT, but on managed Supabase the GoTrue admin call and
+// our subsequent PostgREST UPDATE can land on different pooled
+// connections — and the second connection occasionally doesn't see the
+// just-committed row instantly. Without this wait, the UPDATE below
+// matches zero rows silently (no error returned) and the role stays at
+// the trigger's 'developer' default. 5 × 200ms = up to 1 s.
+async function waitForPublicUser(
+  id: string,
+  admin: AdminClient
+): Promise<boolean> {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const { data } = await admin
+      .from("users")
+      .select("id")
+      .eq("id", id)
+      .maybeSingle();
+    if (data) return true;
+    await new Promise((resolve) => setTimeout(resolve, 200));
+  }
+  return false;
+}
+
 export type InviteUserResult =
   | { ok: true; userId: string; actionLink: string | null }
   | { ok: false; error: string };
 
-// Invite a new teammate. Two-phase:
-//   1. auth.admin.generateLink({ type: 'invite', ... }) — creates the
-//      auth.users row, fires the handle_new_user trigger which inserts
-//      the public.users row with default role 'developer', and emits the
-//      invite email via Supabase's configured template/SMTP. The returned
-//      `action_link` is also handed back to the UI so the admin can
-//      forward it manually if SMTP isn't yet configured in the project.
-//   2. UPDATE public.users SET role = <picked>, name = <picked> for the
-//      new user id. Done with the admin client (RLS would otherwise
-//      block this — `public.users` UPDATE is admin-only via RLS, and
-//      while the caller IS admin, we already have the admin client open
-//      for the auth.admin call. Reusing it keeps the action atomic and
-//      avoids cookie-roundtripping.)
+// Invite a new teammate.
 //
-// Defense in depth: even though /dashboard/users is route-gated to
-// admins, this action re-checks the caller's role from the session
-// before touching anything.
+// Send method: inviteUserByEmail — same call the Supabase dashboard's
+// "Send invite" button uses. It creates the auth.users row AND enqueues
+// the invite email through the project's configured SMTP. The earlier
+// generateLink path was the Task 22 bug: it returned a usable link but
+// did not reliably trigger the email.
+//
+// Order of operations:
+//   1. Re-check the caller is admin (defense in depth; the page is
+//      already route-gated).
+//   2. Validate email + role input.
+//   3. inviteUserByEmail → GoTrue creates auth.users + sends email +
+//      the handle_new_user trigger inserts public.users with default
+//      role='developer'.
+//   4. waitForPublicUser → poll until our PostgREST connection sees the
+//      trigger's row. Avoids the race where UPDATE matches zero rows.
+//   5. UPDATE public.users → apply chosen role + name via the admin
+//      client (bypasses RLS).
+//   6. activity_log insert (non-fatal).
+//   7. revalidatePath + return.
 export async function inviteUser(formData: FormData): Promise<InviteUserResult> {
   const role = await getCurrentRole();
   if (role !== "admin") {
@@ -65,31 +109,33 @@ export async function inviteUser(formData: FormData): Promise<InviteUserResult> 
 
   const admin = createAdminClient();
 
-  // Use generateLink (rather than inviteUserByEmail) so we get the
-  // action_link back. Supabase still sends the invite email when its
-  // email templates are enabled — the link is a secondary copy for the
-  // admin to forward manually if email delivery hasn't been set up yet.
-  const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
-    type: "invite",
-    email,
-    options: name ? { data: { full_name: name } } : undefined,
-  });
+  const { data: invited, error: inviteError } =
+    await admin.auth.admin.inviteUserByEmail(email, {
+      data: name ? { full_name: name } : undefined,
+      redirectTo: `${siteUrl()}/auth/callback`,
+    });
 
-  if (linkError || !linkData?.user) {
+  if (inviteError || !invited?.user) {
     return {
       ok: false,
       error:
-        linkError?.message ??
-        "Supabase couldn't create the invite. Check SMTP + auth settings.",
+        inviteError?.message ??
+        "Supabase couldn't send the invite. Check SMTP + auth settings.",
     };
   }
 
-  const newUserId = linkData.user.id;
+  const newUserId = invited.user.id;
 
-  // The handle_new_user trigger inserts public.users with role='developer'
-  // synchronously inside the auth.users INSERT. Upsert here flips the role
-  // and applies the optional name — keyed by id, so it works whether the
-  // trigger ran first or there's some edge race.
+  const visible = await waitForPublicUser(newUserId, admin);
+  if (!visible) {
+    return {
+      ok: false,
+      error:
+        "User was created in Auth, but their profile row didn't appear in time. " +
+        "Check Supabase Studio for the auth.users row and fix the role manually.",
+    };
+  }
+
   const { error: updateError } = await admin
     .from("users")
     .update({
@@ -99,10 +145,9 @@ export async function inviteUser(formData: FormData): Promise<InviteUserResult> 
     .eq("id", newUserId);
 
   if (updateError) {
-    // Don't leave the public.users role at 'developer' silently.
     return {
       ok: false,
-      error: `User created, but couldn't apply role: ${updateError.message}`,
+      error: `User invited, but couldn't apply role: ${updateError.message}`,
     };
   }
 
@@ -127,7 +172,10 @@ export async function inviteUser(formData: FormData): Promise<InviteUserResult> 
   return {
     ok: true,
     userId: newUserId,
-    actionLink: linkData.properties?.action_link ?? null,
+    // inviteUserByEmail doesn't return an action_link — the email is the
+    // sole delivery channel. The success UI handles actionLink: null
+    // by simply not showing the fallback-link block.
+    actionLink: null,
   };
 }
 
@@ -135,10 +183,12 @@ export type ResendInviteResult =
   | { ok: true; actionLink: string | null }
   | { ok: false; error: string };
 
-// Re-send the password-reset/invite link for an existing user. Used when
-// the original email got lost or the admin needs to forward the link
-// manually. We use type:'recovery' which works for both already-confirmed
-// users and pending-invite users.
+// Re-send the invite email. Supabase's JS SDK doesn't have a dedicated
+// "resend invite" admin method — calling inviteUserByEmail for the same
+// email re-sends a fresh link for users who haven't confirmed yet. For
+// users who already accepted the invite and set a password, Supabase
+// returns a "User already registered" error; the right tool for them is
+// a password reset (a future feature), not a resend-invite.
 export async function resendInvite(userId: string): Promise<ResendInviteResult> {
   const role = await getCurrentRole();
   if (role !== "admin") {
@@ -147,7 +197,6 @@ export async function resendInvite(userId: string): Promise<ResendInviteResult> 
 
   const admin = createAdminClient();
 
-  // Look up the email by id — generateLink wants email, not id.
   const { data: row, error: lookupError } = await admin
     .from("users")
     .select("email")
@@ -157,21 +206,22 @@ export async function resendInvite(userId: string): Promise<ResendInviteResult> 
     return { ok: false, error: "User not found." };
   }
 
-  const { data: linkData, error: linkError } =
-    await admin.auth.admin.generateLink({
-      type: "recovery",
-      email: row.email,
-    });
+  const { error: inviteError } = await admin.auth.admin.inviteUserByEmail(
+    row.email,
+    {
+      redirectTo: `${siteUrl()}/auth/callback`,
+    }
+  );
 
-  if (linkError || !linkData) {
+  if (inviteError) {
     return {
       ok: false,
-      error: linkError?.message ?? "Couldn't generate a recovery link.",
+      error: inviteError.message,
     };
   }
 
   return {
     ok: true,
-    actionLink: linkData.properties?.action_link ?? null,
+    actionLink: null,
   };
 }
