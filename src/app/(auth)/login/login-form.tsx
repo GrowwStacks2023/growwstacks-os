@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useActionState, useEffect } from "react";
 
 import { Field } from "@/components/form";
@@ -12,9 +12,20 @@ import { signIn, type SignInState } from "./actions";
 
 const initialState: SignInState = { error: null };
 
+const NOTICES: Record<string, string> = {
+  account_deactivated:
+    "Your account has been deactivated. Contact an admin if you think this is wrong.",
+  session_expired:
+    "Your previous session expired. Sign in again to continue.",
+};
+
 export function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [state, formAction, pending] = useActionState(signIn, initialState);
+
+  const notice = searchParams.get("notice");
+  const noticeMessage = notice ? NOTICES[notice] : null;
 
   // Fallback for any invite link sent before /auth/callback existed
   // (which dropped the user here with a Supabase token in the URL
@@ -29,6 +40,12 @@ export function LoginForm() {
 
   return (
     <form action={formAction} className="flex flex-col gap-5">
+      {noticeMessage ? (
+        <Alert>
+          <AlertDescription>{noticeMessage}</AlertDescription>
+        </Alert>
+      ) : null}
+
       <Field id="email" label="Email" required>
         <Input
           id="email"

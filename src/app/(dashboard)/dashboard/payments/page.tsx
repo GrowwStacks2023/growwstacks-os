@@ -6,6 +6,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { canCreate } from "@/lib/access";
+import { getCurrentRole } from "@/lib/access-server";
 import {
   PAYMENT_KIND,
   PAYMENT_STATUS,
@@ -55,6 +57,8 @@ type PaymentRow = {
 };
 
 export default async function PaymentsPage() {
+  const role = await getCurrentRole();
+  const mayCreate = canCreate(role, "payment");
   const supabase = await createClient();
 
   // ── Single payments query, then batch context lookups ──────────────
@@ -135,9 +139,11 @@ export default async function PaymentsPage() {
         title="Payments"
         description="Every payment across projects and deals."
         action={
-          <Button render={<Link href="/dashboard/payments/new" />}>
-            Record payment
-          </Button>
+          mayCreate ? (
+            <Button render={<Link href="/dashboard/payments/new" />}>
+              Record payment
+            </Button>
+          ) : null
         }
       />
 

@@ -10,12 +10,17 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { canCreate, canEdit } from "@/lib/access";
+import { getCurrentRole } from "@/lib/access-server";
 import { createClient } from "@/lib/supabase/server";
 
 import { type DealCard } from "./deals-board";
 import { DealsView } from "./deals-view";
 
 export default async function DealsPage() {
+  const role = await getCurrentRole();
+  const mayCreate = canCreate(role, "deal");
+  const mayEdit = canEdit(role, "deal");
   const supabase = await createClient();
   const { data: deals, error } = await supabase
     .from("deals")
@@ -36,7 +41,11 @@ export default async function DealsPage() {
         title="Deals"
         description="Sales pipeline. Drag a card across columns to move it forward, or switch to List for a flat view."
         action={
-          <Button render={<Link href="/dashboard/deals/new" />}>New deal</Button>
+          mayCreate ? (
+            <Button render={<Link href="/dashboard/deals/new" />}>
+              New deal
+            </Button>
+          ) : null
         }
       />
 
@@ -57,14 +66,16 @@ export default async function DealsPage() {
               filling the columns.
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <Button render={<Link href="/dashboard/deals/new" />}>
-              Create deal
-            </Button>
-          </CardContent>
+          {mayCreate ? (
+            <CardContent>
+              <Button render={<Link href="/dashboard/deals/new" />}>
+                Create deal
+              </Button>
+            </CardContent>
+          ) : null}
         </Card>
       ) : (
-        <DealsView deals={rows} />
+        <DealsView deals={rows} canDrag={mayEdit} />
       )}
     </Page>
   );

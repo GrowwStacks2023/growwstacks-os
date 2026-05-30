@@ -1,5 +1,7 @@
 "use server";
 
+import { canCreate } from "@/lib/access";
+import { getCurrentRole } from "@/lib/access-server";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
 
@@ -45,6 +47,14 @@ export async function createTaskDirect(input: {
   estimateHours: number | null;
   dueAt: string | null;
 }): Promise<CreateTaskState> {
+  const callerRole = await getCurrentRole();
+  if (!canCreate(callerRole, "task")) {
+    return {
+      error: "You don't have permission to create tasks.",
+      taskId: null,
+    };
+  }
+
   const title = input.title.trim();
   if (!title) {
     return { error: "Task title is required.", taskId: null };

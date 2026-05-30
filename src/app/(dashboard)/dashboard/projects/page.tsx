@@ -5,7 +5,7 @@ import { ResponsiveList, type ResponsiveRow } from "@/components/responsive-list
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { canEditProjectArea } from "@/lib/access";
+import { canCreate, canEditProjectArea } from "@/lib/access";
 import { getCurrentRole } from "@/lib/access-server";
 import { userDisplay } from "@/lib/display";
 import { PROJECT_STATUS } from "@/lib/status-colors";
@@ -21,6 +21,10 @@ export default async function ProjectsPage() {
   const supabase = await createClient();
   const role = await getCurrentRole();
   const canEdit = canEditProjectArea(role);
+  // Matrix: only admin + pm create projects. canEditProjectArea() returns
+  // true for developer too, so we use canCreate() to gate the New Project
+  // button independently.
+  const mayCreate = canCreate(role, "project");
 
   const { data: projects, error } = await supabase
     .from("projects")
@@ -125,7 +129,7 @@ export default async function ProjectsPage() {
             : "Engagements in flight — read-only view."
         }
         action={
-          canEdit ? (
+          mayCreate ? (
             <Button render={<Link href="/dashboard/projects/new" />}>
               New project
             </Button>
@@ -154,9 +158,9 @@ export default async function ProjectsPage() {
         empty={
           <div className="flex flex-col items-center gap-3">
             <p className="text-ink-700">
-              {canEdit ? "No projects yet." : "No projects to show yet."}
+              {mayCreate ? "No projects yet." : "No projects to show yet."}
             </p>
-            {canEdit ? (
+            {mayCreate ? (
               <Button render={<Link href="/dashboard/projects/new" />}>
                 Spin up your first project
               </Button>

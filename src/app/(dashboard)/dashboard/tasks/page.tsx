@@ -5,6 +5,8 @@ import { ResponsiveList, type ResponsiveRow } from "@/components/responsive-list
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { canCreate } from "@/lib/access";
+import { getCurrentRole } from "@/lib/access-server";
 import { userDisplay } from "@/lib/display";
 import { TASK_PRIORITY, TASK_STATUS } from "@/lib/status-colors";
 import { createClient } from "@/lib/supabase/server";
@@ -43,6 +45,8 @@ export default async function TasksPage({
   searchParams: Promise<{ scope?: string }>;
 }) {
   const supabase = await createClient();
+  const role = await getCurrentRole();
+  const mayCreate = canCreate(role, "task");
 
   const {
     data: { user },
@@ -240,9 +244,11 @@ export default async function TasksPage({
                 All tasks
               </Button>
             </div>
-            <Button render={<Link href="/dashboard/tasks/new" />}>
-              New task
-            </Button>
+            {mayCreate ? (
+              <Button render={<Link href="/dashboard/tasks/new" />}>
+                New task
+              </Button>
+            ) : null}
           </div>
         }
       />

@@ -15,7 +15,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { canAccess, NAV_LINKS, type NavLink, type Role } from "@/lib/access";
+import { canShowInSidebar, NAV_LINKS, type NavLink, type Role } from "@/lib/access";
 import { cn } from "@/lib/utils";
 
 const ICONS: Record<NavLink["icon"], LucideIcon> = {
@@ -40,7 +40,7 @@ const ICONS: Record<NavLink["icon"], LucideIcon> = {
 export function Sidebar({ role }: { role: Role | null }) {
   const pathname = usePathname();
   const visibleLinks = NAV_LINKS.filter((link) =>
-    canAccess(role, link.section)
+    canShowInSidebar(role, link.section)
   );
 
   return (

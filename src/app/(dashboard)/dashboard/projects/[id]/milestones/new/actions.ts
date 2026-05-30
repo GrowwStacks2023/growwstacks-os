@@ -2,6 +2,8 @@
 
 import { redirect } from "next/navigation";
 
+import { canCreate } from "@/lib/access";
+import { getCurrentRole } from "@/lib/access-server";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
 
@@ -36,6 +38,11 @@ export async function createMilestone(
   _prevState: CreateMilestoneState,
   formData: FormData
 ): Promise<CreateMilestoneState> {
+  const role = await getCurrentRole();
+  if (!canCreate(role, "milestone")) {
+    return { error: "You don't have permission to create milestones." };
+  }
+
   const name = String(formData.get("name") ?? "").trim();
   const description = nullIfBlank(String(formData.get("description") ?? ""));
   const statusRaw = String(formData.get("status") ?? "not_started");

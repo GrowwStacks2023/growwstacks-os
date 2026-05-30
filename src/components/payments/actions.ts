@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 
+import { canCreate } from "@/lib/access";
+import { getCurrentRole } from "@/lib/access-server";
 import { createClient } from "@/lib/supabase/server";
 
 const KINDS = ["advance", "installment", "final", "other"] as const;
@@ -33,6 +35,14 @@ export type RecordPaymentResult =
 export async function recordPayment(
   input: RecordPaymentInput
 ): Promise<RecordPaymentResult> {
+  const role = await getCurrentRole();
+  if (!canCreate(role, "payment")) {
+    return {
+      ok: false,
+      error: "You don't have permission to record payments.",
+    };
+  }
+
   if (!input.companyId) {
     return { ok: false, error: "company_id is required." };
   }

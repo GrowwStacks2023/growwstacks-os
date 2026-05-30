@@ -2,6 +2,8 @@
 
 import { redirect } from "next/navigation";
 
+import { canCreate } from "@/lib/access";
+import { getCurrentRole } from "@/lib/access-server";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
 
@@ -56,6 +58,14 @@ export async function createDealDirect(input: {
   valueInr: number | null;
   valueUsd: number | null;
 }): Promise<CreateDealState> {
+  const callerRole = await getCurrentRole();
+  if (!canCreate(callerRole, "deal")) {
+    return {
+      error: "You don't have permission to create deals.",
+      dealId: null,
+    };
+  }
+
   const title = input.title.trim();
   if (!title) {
     return { error: "Deal title is required.", dealId: null };

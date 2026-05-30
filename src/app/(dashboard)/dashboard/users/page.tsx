@@ -16,6 +16,7 @@ import {
 import { USER_ROLE } from "@/lib/status-colors";
 import { createClient } from "@/lib/supabase/server";
 
+import { DeactivateButton, ReactivateButton } from "./activation-buttons";
 import { ResendInviteButton } from "./resend-invite-button";
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
@@ -29,7 +30,9 @@ export default async function UsersPage() {
   const supabase = await createClient();
   const { data: users, error } = await supabase
     .from("users")
-    .select("id, name, email, role, is_active, created_at")
+    .select("id, name, email, role, is_active, created_at, deactivated_at")
+    // Active users first; within each group newest at top.
+    .order("is_active", { ascending: false })
     .order("created_at", { ascending: false });
 
   return (
@@ -40,7 +43,7 @@ export default async function UsersPage() {
           { label: "Users" },
         ]}
         title="Team"
-        description="Invite teammates and manage their roles. Invites are emailed by Supabase — new users set their own password via the link."
+        description="Invite teammates, set their roles, deactivate when they leave. Invites are emailed by Supabase — new users set their own password via the link."
         action={
           <Button render={<Link href="/dashboard/users/new" />}>
             Invite user
@@ -64,6 +67,7 @@ export default async function UsersPage() {
                 <TableHead className="pl-6">Email</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Role</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead>Joined</TableHead>
                 <TableHead className="pr-6 text-right">Actions</TableHead>
               </TableRow>
@@ -71,8 +75,12 @@ export default async function UsersPage() {
             <TableBody>
               {(users ?? []).map((u) => {
                 const roleVisual = USER_ROLE[u.role];
+                const label = u.name?.trim() || u.email;
                 return (
-                  <TableRow key={u.id}>
+                  <TableRow
+                    key={u.id}
+                    className={u.is_active ? "" : "opacity-60"}
+                  >
                     <TableCell className="pl-6 font-semibold text-ink-900">
                       {u.email}
                     </TableCell>
@@ -87,11 +95,40 @@ export default async function UsersPage() {
                         {roleVisual.label}
                       </Badge>
                     </TableCell>
+                    <TableCell>
+                      {u.is_active ? (
+                        <Badge
+                          variant="outline"
+                          className="bg-green-100 text-green-700"
+                        >
+                          Active
+                        </Badge>
+                      ) : (
+                        <Badge
+                          variant="outline"
+                          className="bg-[#eef3f8] text-ink-500"
+                        >
+                          Inactive
+                        </Badge>
+                      )}
+                    </TableCell>
                     <TableCell className="font-numeric text-ink-500">
                       {dateFormatter.format(new Date(u.created_at))}
                     </TableCell>
                     <TableCell className="pr-6 text-right">
-                      <ResendInviteButton userId={u.id} />
+                      <div className="flex items-center justify-end gap-2">
+                        {u.is_active ? (
+                          <>
+                            <ResendInviteButton userId={u.id} />
+                            <DeactivateButton
+                              userId={u.id}
+                              userLabel={label}
+                            />
+                          </>
+                        ) : (
+                          <ReactivateButton userId={u.id} />
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 );

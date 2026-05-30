@@ -6,9 +6,13 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AvatarInitials } from "@/components/ui/avatar-initials";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { canCreate } from "@/lib/access";
+import { getCurrentRole } from "@/lib/access-server";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function ContactsPage() {
+  const role = await getCurrentRole();
+  const mayCreate = canCreate(role, "contact");
   const supabase = await createClient();
   const { data: contacts, error } = await supabase
     .from("contacts")
@@ -60,9 +64,11 @@ export default async function ContactsPage() {
         title="Contacts"
         description="People you work with — at companies or standalone."
         action={
-          <Button render={<Link href="/dashboard/contacts/new" />}>
-            New contact
-          </Button>
+          mayCreate ? (
+            <Button render={<Link href="/dashboard/contacts/new" />}>
+              New contact
+            </Button>
+          ) : null
         }
       />
 
@@ -86,9 +92,11 @@ export default async function ContactsPage() {
         empty={
           <div className="flex flex-col items-center gap-3">
             <p className="text-ink-700">No contacts yet.</p>
-            <Button render={<Link href="/dashboard/contacts/new" />}>
-              Add your first contact
-            </Button>
+            {mayCreate ? (
+              <Button render={<Link href="/dashboard/contacts/new" />}>
+                Add your first contact
+              </Button>
+            ) : null}
           </div>
         }
       />

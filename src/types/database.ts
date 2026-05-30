@@ -1018,6 +1018,8 @@ export type Database = {
       users: {
         Row: {
           created_at: string
+          deactivated_at: string | null
+          deactivated_by: string | null
           email: string
           id: string
           is_active: boolean
@@ -1027,6 +1029,8 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          deactivated_at?: string | null
+          deactivated_by?: string | null
           email: string
           id: string
           is_active?: boolean
@@ -1036,6 +1040,8 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          deactivated_at?: string | null
+          deactivated_by?: string | null
           email?: string
           id?: string
           is_active?: boolean
@@ -1043,7 +1049,15 @@ export type Database = {
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "users_deactivated_by_fkey"
+            columns: ["deactivated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

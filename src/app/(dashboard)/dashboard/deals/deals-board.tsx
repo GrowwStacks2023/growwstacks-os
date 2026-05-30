@@ -186,7 +186,15 @@ function DropColumn({
   );
 }
 
-export function DealsBoard({ initialDeals }: { initialDeals: DealCard[] }) {
+export function DealsBoard({
+  initialDeals,
+  canDrag = true,
+}: {
+  initialDeals: DealCard[];
+  // When false, items render as static cards (no DnD context, no
+  // listeners) — sales sees the same Kanban but can't move anything.
+  canDrag?: boolean;
+}) {
   const [deals, setDeals] = useState<DealCard[]>(initialDeals);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [overStage, setOverStage] = useState<DealStage | null>(null);
@@ -318,7 +326,7 @@ export function DealsBoard({ initialDeals }: { initialDeals: DealCard[] }) {
                           <DraggableDeal
                             key={deal.id}
                             deal={deal}
-                            disabled={isPending}
+                            disabled={isPending || !canDrag}
                           />
                         ))}
                       </ul>

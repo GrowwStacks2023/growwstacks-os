@@ -27,11 +27,20 @@ export function NewUserForm() {
     email: string;
     actionLink: string | null;
   } | null>(null);
-  const [role, setRole] = useState<string>("developer");
+  // Initial empty value forces an explicit pick. Default-"developer"
+  // historically caused admins to silently invite developers because
+  // the trigger would only let role changes through for an *actual*
+  // change — typing email+name and submitting kept role at the default.
+  const [role, setRole] = useState<string>("");
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+
+    if (!role) {
+      setError("Pick a role for this teammate.");
+      return;
+    }
 
     const formData = new FormData(e.currentTarget);
     formData.set("role", role);
@@ -85,7 +94,7 @@ export function NewUserForm() {
             onClick={() => {
               setSuccess(null);
               setError(null);
-              setRole("developer");
+              setRole("");
             }}
           >
             Invite another
@@ -130,11 +139,15 @@ export function NewUserForm() {
           <Field id="role" label="Role" required>
             <Select
               value={role}
-              onValueChange={(v) => setRole(v ?? "developer")}
+              onValueChange={(v) => setRole(v ?? "")}
               disabled={pending}
             >
-              <SelectTrigger id="role" className="w-full">
-                <SelectValue placeholder="Pick a role" />
+              <SelectTrigger
+                id="role"
+                className="w-full"
+                aria-invalid={!role || undefined}
+              >
+                <SelectValue placeholder="Select a role" />
               </SelectTrigger>
               <SelectContent>
                 {USER_ROLE_OPTIONS.map((opt) => (

@@ -12,9 +12,13 @@ import { DealsViewToggle, type DealsView as Mode } from "./deals-view-toggle";
 export function DealsView({
   deals,
   rightSlot,
+  canDrag = true,
 }: {
   deals: DealCard[];
   rightSlot?: React.ReactNode;
+  // When false (e.g. sales role), the Board renders cards but disables
+  // dragging — sales can browse the pipeline but cannot move deals.
+  canDrag?: boolean;
 }) {
   const [mode, setMode] = useState<Mode>("board");
 
@@ -25,7 +29,7 @@ export function DealsView({
         {rightSlot ? <div className="shrink-0">{rightSlot}</div> : null}
       </div>
       {mode === "board" ? (
-        <DealsBoard initialDeals={deals} />
+        <DealsBoard initialDeals={deals} canDrag={canDrag} />
       ) : (
         <DealsList deals={deals} />
       )}

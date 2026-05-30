@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 
+import { canEdit } from "@/lib/access";
+import { getCurrentRole } from "@/lib/access-server";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
 
@@ -39,6 +41,14 @@ export async function updateDealStage(
   }
   if (typeof nextStage !== "string" || !isDealStage(nextStage)) {
     return { ok: false, error: "Invalid stage." };
+  }
+
+  const role = await getCurrentRole();
+  if (!canEdit(role, "deal")) {
+    return {
+      ok: false,
+      error: "You don't have permission to move deals.",
+    };
   }
 
   const supabase = await createClient();

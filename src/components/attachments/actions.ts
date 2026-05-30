@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 
+import { canWriteAttachment } from "@/lib/access";
+import { getCurrentRole } from "@/lib/access-server";
 import { createClient } from "@/lib/supabase/server";
 
 // Six entity buckets, matching the CHECK constraint in 0007_attachments.sql.
@@ -209,6 +211,14 @@ export async function uploadAndRecordFile(
     return { ok: false, error: "Missing entity id." };
   }
 
+  const role = await getCurrentRole();
+  if (!canWriteAttachment(role, entityType)) {
+    return {
+      ok: false,
+      error: "You don't have permission to attach files to this entity.",
+    };
+  }
+
   // POST to webhook. If anything goes wrong here we bail before touching
   // the DB — partial state would be worse than a clean failure.
   const upload = await postFileToWebhook(file);
@@ -239,6 +249,14 @@ export async function recordLinkAttachment(
   const url = input.url.trim();
   if (!url) {
     return { ok: false, error: "Link URL is required." };
+  }
+
+  const role = await getCurrentRole();
+  if (!canWriteAttachment(role, input.entityType)) {
+    return {
+      ok: false,
+      error: "You don't have permission to attach links to this entity.",
+    };
   }
 
   const supabase = await createClient();

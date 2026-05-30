@@ -2,6 +2,8 @@
 
 import { redirect } from "next/navigation";
 
+import { canCreate } from "@/lib/access";
+import { getCurrentRole } from "@/lib/access-server";
 import { createClient } from "@/lib/supabase/server";
 
 export type CreateContactState = {
@@ -28,6 +30,14 @@ export async function createContactDirect(
     isPrimary: boolean;
   }
 ): Promise<CreateContactState> {
+  const callerRole = await getCurrentRole();
+  if (!canCreate(callerRole, "contact")) {
+    return {
+      error: "You don't have permission to create contacts.",
+      contactId: null,
+    };
+  }
+
   const name = input.name.trim();
   if (!name) {
     return { error: "Contact name is required.", contactId: null };

@@ -15,7 +15,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { canEditProjectArea } from "@/lib/access";
+import { canCreate, canEditProjectArea } from "@/lib/access";
 import { getCurrentRole } from "@/lib/access-server";
 import { userDisplay } from "@/lib/display";
 import {
@@ -57,6 +57,11 @@ export default async function ProjectDetailPage({
   const supabase = await createClient();
   const role = await getCurrentRole();
   const canEdit = canEditProjectArea(role);
+  // Matrix: developer cannot create milestones or tasks (read-only for
+  // them on these). canEditProjectArea includes developer, so we gate
+  // the Add buttons separately.
+  const mayCreateMilestone = canCreate(role, "milestone");
+  const mayCreateTask = canCreate(role, "task");
 
   const { data: project, error: projectError } = await supabase
     .from("projects")
@@ -171,7 +176,7 @@ export default async function ProjectDetailPage({
           </Badge>
         }
         action={
-          canEdit ? (
+          mayCreateMilestone ? (
             <Button
               render={
                 <Link href={`/dashboard/projects/${id}/milestones/new`} />
@@ -201,7 +206,7 @@ export default async function ProjectDetailPage({
                   : "No milestones to show yet."}
               </CardDescription>
             </CardHeader>
-            {canEdit ? (
+            {mayCreateMilestone ? (
               <CardContent>
                 <Button
                   render={
@@ -252,7 +257,7 @@ export default async function ProjectDetailPage({
                         </p>
                       ) : null}
                     </div>
-                    {canEdit ? (
+                    {mayCreateTask ? (
                       <Button
                         size="sm"
                         variant="outline"

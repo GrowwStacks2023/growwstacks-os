@@ -2,6 +2,8 @@
 
 import { redirect } from "next/navigation";
 
+import { canCreate } from "@/lib/access";
+import { getCurrentRole } from "@/lib/access-server";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
 
@@ -42,6 +44,14 @@ export async function createProjectDirect(input: {
   startedAt: string | null;
   expectedEndAt: string | null;
 }): Promise<CreateProjectState> {
+  const callerRole = await getCurrentRole();
+  if (!canCreate(callerRole, "project")) {
+    return {
+      error: "You don't have permission to create projects.",
+      projectId: null,
+    };
+  }
+
   const name = input.name.trim();
   if (!name) {
     return { error: "Project name is required.", projectId: null };

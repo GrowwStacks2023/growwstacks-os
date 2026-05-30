@@ -2,6 +2,8 @@
 
 import { redirect } from "next/navigation";
 
+import { canCreate } from "@/lib/access";
+import { getCurrentRole } from "@/lib/access-server";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
 
@@ -27,6 +29,11 @@ export async function createCompany(
   _prevState: CreateCompanyState,
   formData: FormData
 ): Promise<CreateCompanyState> {
+  const role = await getCurrentRole();
+  if (!canCreate(role, "company")) {
+    return { error: "You don't have permission to create companies." };
+  }
+
   const name = String(formData.get("name") ?? "").trim();
   const typeRaw = String(formData.get("type") ?? "prospect");
   const timezone = String(formData.get("timezone") ?? "").trim() || "Asia/Kolkata";

@@ -4,6 +4,8 @@ import { Page, PageHeader } from "@/components/page-shell";
 import { ResponsiveList, type ResponsiveRow } from "@/components/responsive-list";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { canCreate } from "@/lib/access";
+import { getCurrentRole } from "@/lib/access-server";
 import { createClient } from "@/lib/supabase/server";
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
@@ -13,6 +15,8 @@ const dateFormatter = new Intl.DateTimeFormat("en-US", {
 });
 
 export default async function CompaniesPage() {
+  const role = await getCurrentRole();
+  const mayCreate = canCreate(role, "company");
   const supabase = await createClient();
   const { data: companies, error } = await supabase
     .from("companies")
@@ -51,9 +55,11 @@ export default async function CompaniesPage() {
         title="Companies"
         description="Clients, prospects, and partners."
         action={
-          <Button render={<Link href="/dashboard/companies/new" />}>
-            New company
-          </Button>
+          mayCreate ? (
+            <Button render={<Link href="/dashboard/companies/new" />}>
+              New company
+            </Button>
+          ) : null
         }
       />
 
@@ -76,9 +82,11 @@ export default async function CompaniesPage() {
         empty={
           <div className="flex flex-col items-center gap-3">
             <p className="text-foreground/80">No companies yet.</p>
-            <Button render={<Link href="/dashboard/companies/new" />}>
-              Create your first
-            </Button>
+            {mayCreate ? (
+              <Button render={<Link href="/dashboard/companies/new" />}>
+                Create your first
+              </Button>
+            ) : null}
           </div>
         }
       />

@@ -41,11 +41,10 @@ function fmtMoney(amount: number, currency: string): string {
 }
 
 // Role gate shared by both cards. Returns true when the caller can see
-// payments at all; developers get a clean null render upstream.
+// payments at all; sales/developers get a clean null render. Aligned
+// with Task 25 matrix (admin/pm only).
 function canSeePayments(role: string | null): boolean {
-  return (
-    role === "admin" || role === "sales" || role === "pm"
-  );
+  return role === "admin" || role === "pm";
 }
 
 // Internal totals helper — split by currency, received vs expected — feeds
