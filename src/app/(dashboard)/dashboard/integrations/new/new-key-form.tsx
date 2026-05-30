@@ -36,7 +36,9 @@ export function NewKeyForm() {
     setError(null);
     setPending(true);
 
-    const result = await generateApiKey(name, scope);
+    // Role is hardcoded to admin in the UI until role-scoped keys ship.
+    // The action validates it server-side against the CHECK constraint.
+    const result = await generateApiKey(name, scope, "admin");
     setPending(false);
 
     if (!result.ok) {
@@ -155,6 +157,22 @@ export function NewKeyForm() {
             <SelectContent>
               <SelectItem value="read">Read only</SelectItem>
               <SelectItem value="read_write">Read + Write</SelectItem>
+            </SelectContent>
+          </Select>
+        </Field>
+
+        <Field
+          id="role"
+          label="Role"
+          required
+          description="Currently only admin-role keys are supported. Role-scoped keys are coming in a future update."
+        >
+          <Select value="admin" disabled>
+            <SelectTrigger id="role" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="admin">Admin</SelectItem>
             </SelectContent>
           </Select>
         </Field>

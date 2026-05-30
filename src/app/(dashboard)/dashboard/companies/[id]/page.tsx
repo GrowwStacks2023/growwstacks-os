@@ -6,6 +6,7 @@ import { DeleteAction } from "@/components/delete-action";
 import { Page, PageHeader } from "@/components/page-shell";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -13,7 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { canDelete } from "@/lib/access";
+import { canDelete, canEdit } from "@/lib/access";
 import { getCurrentRole } from "@/lib/access-server";
 import { createClient } from "@/lib/supabase/server";
 
@@ -32,6 +33,7 @@ export default async function CompanyDetailPage({
 }) {
   const { id } = await params;
   const role = await getCurrentRole();
+  const mayEdit = canEdit(role, "company");
   const mayDelete = canDelete(role, "company");
   const supabase = await createClient();
 
@@ -79,16 +81,30 @@ export default async function CompanyDetailPage({
           </Badge>
         }
         action={
-          mayDelete ? (
-            <DeleteAction
-              title={`Delete ${company.name}?`}
-              description="This cannot be undone. Any contacts, deals, or projects attached to this company must be removed first."
-              onConfirm={async () => {
-                "use server";
-                return deleteCompany(id);
-              }}
-              redirectTo="/dashboard/companies"
-            />
+          mayEdit || mayDelete ? (
+            <div className="flex items-center gap-2">
+              {mayEdit ? (
+                <Button
+                  variant="outline"
+                  render={
+                    <Link href={`/dashboard/companies/${id}/edit`} />
+                  }
+                >
+                  Edit
+                </Button>
+              ) : null}
+              {mayDelete ? (
+                <DeleteAction
+                  title={`Delete ${company.name}?`}
+                  description="This cannot be undone. Any contacts, deals, or projects attached to this company must be removed first."
+                  onConfirm={async () => {
+                    "use server";
+                    return deleteCompany(id);
+                  }}
+                  redirectTo="/dashboard/companies"
+                />
+              ) : null}
+            </div>
           ) : null
         }
       />

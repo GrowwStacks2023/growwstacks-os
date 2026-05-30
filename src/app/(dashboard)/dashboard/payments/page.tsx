@@ -1,12 +1,16 @@
 import Link from "next/link";
 
 import { Page, PageHeader } from "@/components/page-shell";
-import { ResponsiveList, type ResponsiveRow } from "@/components/responsive-list";
+import {
+  ResponsiveList,
+  type ResponsiveColumn,
+  type ResponsiveRow,
+} from "@/components/responsive-list";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { canCreate } from "@/lib/access";
+import { canCreate, canEdit } from "@/lib/access";
 import { getCurrentRole } from "@/lib/access-server";
 import {
   PAYMENT_KIND,
@@ -59,6 +63,7 @@ type PaymentRow = {
 export default async function PaymentsPage() {
   const role = await getCurrentRole();
   const mayCreate = canCreate(role, "payment");
+  const mayEdit = canEdit(role, "payment");
   const supabase = await createClient();
 
   // ── Single payments query, then batch context lookups ──────────────
@@ -192,13 +197,21 @@ export default async function PaymentsPage() {
 
       <ResponsiveList
         columns={[
-          { key: "amount", label: "Amount", primary: true, widthHint: "18%" },
+          {
+            key: "amount",
+            label: "Amount",
+            primary: true,
+            widthHint: "18%",
+          },
           { key: "kind", label: "Kind" },
           { key: "status", label: "Status" },
           { key: "context", label: "Context" },
           { key: "company", label: "Company" },
           { key: "received", label: "Received" },
           { key: "reference", label: "Reference" },
+          ...(mayEdit
+            ? [{ key: "actions", label: "" } satisfies ResponsiveColumn]
+            : []),
         ]}
         rows={rows.map<ResponsiveRow>((p) => {
           const kind = PAYMENT_KIND[p.kind];
@@ -264,6 +277,18 @@ export default async function PaymentsPage() {
                   {p.reference ?? "—"}
                 </span>
               ),
+              ...(mayEdit
+                ? {
+                    actions: (
+                      <Link
+                        href={`/dashboard/payments/${p.id}/edit`}
+                        className="text-[12px] font-medium text-ink-700 hover:text-ink-900 hover:underline"
+                      >
+                        Edit
+                      </Link>
+                    ),
+                  }
+                : {}),
             },
           };
         })}

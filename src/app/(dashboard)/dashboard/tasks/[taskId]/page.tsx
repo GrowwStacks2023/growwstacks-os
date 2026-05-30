@@ -1,12 +1,15 @@
 import { notFound } from "next/navigation";
 
+import Link from "next/link";
+
 import { AttachmentsCard } from "@/components/attachments";
 import { DeleteAction } from "@/components/delete-action";
 import { Page, PageHeader, type Crumb } from "@/components/page-shell";
 import { deleteTask } from "@/components/tasks/mutations";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { canDelete } from "@/lib/access";
+import { Button } from "@/components/ui/button";
+import { canDelete, canEdit, canEditOwnTaskOnly } from "@/lib/access";
 import { getCurrentRole } from "@/lib/access-server";
 import { userDisplay } from "@/lib/display";
 import { TASK_PRIORITY, TASK_STATUS } from "@/lib/status-colors";
@@ -47,7 +50,7 @@ export default async function UniversalTaskDetailPage({
   const { data: task, error } = await supabase
     .from("tasks")
     .select(
-      "id, title, description, status, priority, estimate_hours, actual_hours, due_at, completed_at, created_at, client_visible, project_id, milestone_id, deal_id, contact_id, assignee:users!tasks_assignee_id_fkey(name, email), pm:users!tasks_pm_id_fkey(name, email), project:projects(id, name), milestone:milestones(id, name, sequence), deal:deals(id, title), contact:contacts(id, name)"
+      "id, title, description, status, priority, estimate_hours, actual_hours, due_at, completed_at, created_at, client_visible, project_id, milestone_id, deal_id, contact_id, assignee_id, assignee:users!tasks_assignee_id_fkey(name, email), pm:users!tasks_pm_id_fkey(name, email), project:projects(id, name), milestone:milestones(id, name, sequence), deal:deals(id, title), contact:contacts(id, name)"
     )
     .eq("id", taskId)
     .maybeSingle();
@@ -66,6 +69,20 @@ export default async function UniversalTaskDetailPage({
   // hides it from the caller — same UX either way.
   if (!task) {
     notFound();
+  }
+
+  // Edit visibility:
+  //   admin/pm   → always show Edit
+  //   developer  → show Edit ONLY if they're the assignee (otherwise
+  //                /edit would just bounce them)
+  //   sales/client → no Edit (they can't reach the dashboard task pages
+  //                anyway, but be defensive)
+  let mayEdit = canEdit(role, "task");
+  if (!mayEdit && canEditOwnTaskOnly(role)) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    mayEdit = !!user && task.assignee_id === user.id;
   }
 
   const status = TASK_STATUS[task.status];
@@ -132,16 +149,28 @@ export default async function UniversalTaskDetailPage({
           </>
         }
         action={
-          mayDelete ? (
-            <DeleteAction
-              title={`Delete task "${task.title}"?`}
-              description="This cannot be undone."
-              onConfirm={async () => {
-                "use server";
-                return deleteTask(taskId);
-              }}
-              redirectTo="/dashboard/tasks"
-            />
+          mayEdit || mayDelete ? (
+            <div className="flex items-center gap-2">
+              {mayEdit ? (
+                <Button
+                  variant="outline"
+                  render={<Link href={`/dashboard/tasks/${taskId}/edit`} />}
+                >
+                  Edit
+                </Button>
+              ) : null}
+              {mayDelete ? (
+                <DeleteAction
+                  title={`Delete task "${task.title}"?`}
+                  description="This cannot be undone."
+                  onConfirm={async () => {
+                    "use server";
+                    return deleteTask(taskId);
+                  }}
+                  redirectTo="/dashboard/tasks"
+                />
+              ) : null}
+            </div>
           ) : null
         }
       />

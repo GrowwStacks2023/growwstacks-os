@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { canDelete, canEdit } from "@/lib/access";
 import { getCurrentRole } from "@/lib/access-server";
+import { diffPayload, logEntityUpdate } from "@/lib/activity-log";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
 
@@ -57,21 +58,52 @@ export async function updateDeal(input: {
   if (!source) return { ok: false, error: "Invalid deal source." };
 
   const supabase = await createClient();
-  const { error } = await supabase
+
+  const { data: before } = await supabase
     .from("deals")
-    .update({
-      title,
-      description: input.description,
-      stage,
-      source,
-      owner_id: input.ownerId,
-      contact_id: input.contactId,
-      company_id: input.companyId,
-      value_inr: input.valueInr,
-      value_usd: input.valueUsd,
-    })
-    .eq("id", input.id);
+    .select(
+      "id, title, description, stage, source, owner_id, contact_id, company_id, value_inr, value_usd"
+    )
+    .eq("id", input.id)
+    .maybeSingle();
+  if (!before) {
+    return { ok: false, error: "Deal not found." };
+  }
+
+  const after = {
+    title,
+    description: input.description,
+    stage,
+    source,
+    owner_id: input.ownerId,
+    contact_id: input.contactId,
+    company_id: input.companyId,
+    value_inr: input.valueInr,
+    value_usd: input.valueUsd,
+  };
+
+  const { error } = await supabase.from("deals").update(after).eq("id", input.id);
   if (error) return { ok: false, error: error.message };
+
+  const {
+    data: { user: actor },
+  } = await supabase.auth.getUser();
+  await logEntityUpdate(supabase, {
+    entityType: "deal",
+    entityId: input.id,
+    actorId: actor?.id ?? null,
+    diff: diffPayload(before, after, [
+      "title",
+      "description",
+      "stage",
+      "source",
+      "owner_id",
+      "contact_id",
+      "company_id",
+      "value_inr",
+      "value_usd",
+    ]),
+  });
 
   revalidatePath("/dashboard/deals");
   revalidatePath(`/dashboard/deals/${input.id}`);

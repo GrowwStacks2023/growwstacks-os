@@ -54,7 +54,8 @@ export type GenerateApiKeyResult =
 
 export async function generateApiKey(
   name: string,
-  scope: string
+  scope: string,
+  keyRole: string
 ): Promise<GenerateApiKeyResult> {
   const role = await getCurrentRole();
   if (role !== "admin") {
@@ -67,6 +68,14 @@ export async function generateApiKey(
   }
   if (!isScope(scope)) {
     return { ok: false, error: "Scope must be read or read_write." };
+  }
+  // Only admin-role keys are issuable right now. The DB CHECK
+  // constraint enforces it too — this is the friendlier early error.
+  if (keyRole !== "admin") {
+    return {
+      ok: false,
+      error: "Only admin-role API keys are supported in this version.",
+    };
   }
 
   // Defense in depth: generate key + hash before going near the DB. If
@@ -95,6 +104,7 @@ export async function generateApiKey(
       key_hash: keyHash,
       key_prefix: keyPrefix,
       scope,
+      role: "admin",
       created_by: user.id,
     })
     .select("id")

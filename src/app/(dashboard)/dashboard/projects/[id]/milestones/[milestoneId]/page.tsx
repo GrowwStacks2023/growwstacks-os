@@ -13,6 +13,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { canEdit } from "@/lib/access";
+import { getCurrentRole } from "@/lib/access-server";
 import { userDisplay } from "@/lib/display";
 import {
   MILESTONE_STATUS,
@@ -38,6 +40,8 @@ export default async function MilestoneDetailPage({
   params: Promise<{ id: string; milestoneId: string }>;
 }) {
   const { id: projectId, milestoneId } = await params;
+  const role = await getCurrentRole();
+  const mayEdit = canEdit(role, "milestone");
   const supabase = await createClient();
 
   const { data: milestone, error } = await supabase
@@ -106,15 +110,29 @@ export default async function MilestoneDetailPage({
           </>
         }
         action={
-          <Button
-            render={
-              <Link
-                href={`/dashboard/projects/${projectId}/milestones/${milestoneId}/tasks/new`}
-              />
-            }
-          >
-            Add task
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              render={
+                <Link
+                  href={`/dashboard/projects/${projectId}/milestones/${milestoneId}/tasks/new`}
+                />
+              }
+            >
+              Add task
+            </Button>
+            {mayEdit ? (
+              <Button
+                variant="outline"
+                render={
+                  <Link
+                    href={`/dashboard/projects/${projectId}/milestones/${milestoneId}/edit`}
+                  />
+                }
+              >
+                Edit
+              </Button>
+            ) : null}
+          </div>
         }
       />
 

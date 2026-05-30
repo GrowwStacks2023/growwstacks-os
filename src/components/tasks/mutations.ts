@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { canDelete, canEdit, canEditOwnTaskOnly } from "@/lib/access";
 import { getCurrentRole } from "@/lib/access-server";
+import { diffPayload, logEntityUpdate } from "@/lib/activity-log";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
 
@@ -60,20 +61,53 @@ export async function updateTask(input: {
   }
 
   const supabase = await createClient();
+
+  const { data: before } = await supabase
+    .from("tasks")
+    .select(
+      "id, title, description, status, priority, assignee_id, pm_id, estimate_hours, due_at"
+    )
+    .eq("id", input.id)
+    .maybeSingle();
+  if (!before) {
+    return { ok: false, error: "Task not found." };
+  }
+
+  const after = {
+    title,
+    description: input.description,
+    status: input.status,
+    priority: input.priority,
+    assignee_id: input.assigneeId,
+    pm_id: input.pmId,
+    estimate_hours: input.estimateHours,
+    due_at: input.dueAt,
+  };
+
   const { error } = await supabase
     .from("tasks")
-    .update({
-      title,
-      description: input.description,
-      status: input.status,
-      priority: input.priority,
-      assignee_id: input.assigneeId,
-      pm_id: input.pmId,
-      estimate_hours: input.estimateHours,
-      due_at: input.dueAt,
-    })
+    .update(after)
     .eq("id", input.id);
   if (error) return { ok: false, error: error.message };
+
+  const {
+    data: { user: actor },
+  } = await supabase.auth.getUser();
+  await logEntityUpdate(supabase, {
+    entityType: "task",
+    entityId: input.id,
+    actorId: actor?.id ?? null,
+    diff: diffPayload(before, after, [
+      "title",
+      "description",
+      "status",
+      "priority",
+      "assignee_id",
+      "pm_id",
+      "estimate_hours",
+      "due_at",
+    ]),
+  });
 
   revalidatePath("/dashboard/tasks");
   revalidatePath(`/dashboard/tasks/${input.id}`);
@@ -106,21 +140,22 @@ export async function updateOwnTaskStatus(
   } = await supabase.auth.getUser();
   if (!actor) return { ok: false, error: "You must be signed in." };
 
+  // Pre-fetch enough to do the assignee check AND have a before-snapshot
+  // for the audit row. Single round trip.
+  const { data: before } = await supabase
+    .from("tasks")
+    .select("id, status, assignee_id")
+    .eq("id", taskId)
+    .maybeSingle();
+  if (!before) return { ok: false, error: "Task not found." };
+
   // Developers must be the task's assignee. Admin/PM can update any
   // task (canEdit(role,'task') is true for them).
-  if (canEditOwnTaskOnly(role)) {
-    const { data: task } = await supabase
-      .from("tasks")
-      .select("assignee_id")
-      .eq("id", taskId)
-      .maybeSingle();
-    if (!task) return { ok: false, error: "Task not found." };
-    if (task.assignee_id !== actor.id) {
-      return {
-        ok: false,
-        error: "You can only change status on tasks assigned to you.",
-      };
-    }
+  if (canEditOwnTaskOnly(role) && before.assignee_id !== actor.id) {
+    return {
+      ok: false,
+      error: "You can only change status on tasks assigned to you.",
+    };
   }
 
   const { error } = await supabase
@@ -128,6 +163,13 @@ export async function updateOwnTaskStatus(
     .update({ status: newStatus })
     .eq("id", taskId);
   if (error) return { ok: false, error: error.message };
+
+  await logEntityUpdate(supabase, {
+    entityType: "task",
+    entityId: taskId,
+    actorId: actor.id,
+    diff: diffPayload(before, { status: newStatus }, ["status"]),
+  });
 
   revalidatePath("/dashboard/tasks");
   revalidatePath(`/dashboard/tasks/${taskId}`);

@@ -106,6 +106,7 @@ export type Database = {
           last_used_at: string | null
           name: string
           revoked_at: string | null
+          role: Database["public"]["Enums"]["user_role"]
           scope: string
         }
         Insert: {
@@ -117,6 +118,7 @@ export type Database = {
           last_used_at?: string | null
           name: string
           revoked_at?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
           scope: string
         }
         Update: {
@@ -128,6 +130,7 @@ export type Database = {
           last_used_at?: string | null
           name?: string
           revoked_at?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
           scope?: string
         }
         Relationships: [
@@ -1113,6 +1116,10 @@ export type Database = {
       current_user_role: {
         Args: never
         Returns: Database["public"]["Enums"]["user_role"]
+      }
+      user_has_project_access: {
+        Args: { p_project_id: string }
+        Returns: boolean
       }
       user_has_task_in_project: {
         Args: { target_project_id: string }

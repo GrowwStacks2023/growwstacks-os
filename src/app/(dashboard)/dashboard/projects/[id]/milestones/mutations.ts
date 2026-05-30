@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { canDelete, canEdit } from "@/lib/access";
 import { getCurrentRole } from "@/lib/access-server";
+import { diffPayload, logEntityUpdate } from "@/lib/activity-log";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
 
@@ -47,17 +48,53 @@ export async function updateMilestone(input: {
   if (!status) return { ok: false, error: "Invalid status." };
 
   const supabase = await createClient();
+
+  const { data: before } = await supabase
+    .from("milestones")
+    .select("id, name, description, status, sequence, target_date")
+    .eq("id", input.id)
+    .maybeSingle();
+  if (!before) {
+    return { ok: false, error: "Milestone not found." };
+  }
+
+  const after = {
+    name,
+    description: input.description,
+    status,
+    sequence: input.sequence,
+    target_date: input.targetDate,
+  };
+
   const { error } = await supabase
     .from("milestones")
-    .update({
-      name,
-      description: input.description,
-      status,
-      sequence: input.sequence,
-      target_date: input.targetDate,
-    })
+    .update(after)
     .eq("id", input.id);
-  if (error) return { ok: false, error: error.message };
+  if (error) {
+    if (error.code === "23505") {
+      return {
+        ok: false,
+        error: `Sequence ${input.sequence} is already used by another milestone in this project. Pick a different number.`,
+      };
+    }
+    return { ok: false, error: error.message };
+  }
+
+  const {
+    data: { user: actor },
+  } = await supabase.auth.getUser();
+  await logEntityUpdate(supabase, {
+    entityType: "milestone",
+    entityId: input.id,
+    actorId: actor?.id ?? null,
+    diff: diffPayload(before, after, [
+      "name",
+      "description",
+      "status",
+      "sequence",
+      "target_date",
+    ]),
+  });
 
   revalidatePath(`/dashboard/projects/${input.projectId}`);
   revalidatePath(`/dashboard/projects/${input.projectId}/milestones/${input.id}`);

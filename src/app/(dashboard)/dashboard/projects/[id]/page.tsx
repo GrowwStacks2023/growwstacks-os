@@ -16,7 +16,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { canCreate, canDelete, canEditProjectArea } from "@/lib/access";
+import { canCreate, canDelete, canEdit, canEditProjectArea } from "@/lib/access";
 import { getCurrentRole } from "@/lib/access-server";
 import { userDisplay } from "@/lib/display";
 import {
@@ -66,7 +66,7 @@ export default async function ProjectDetailPage({
   const { id } = await params;
   const supabase = await createClient();
   const role = await getCurrentRole();
-  const canEdit = canEditProjectArea(role);
+  const mayViewProjectInternals = canEditProjectArea(role);
 
   // Developer access scoping: a developer can reach a project if EITHER
   // they're on the team OR they have a task assigned in it. After
@@ -102,7 +102,9 @@ export default async function ProjectDetailPage({
   // the Add buttons separately.
   const mayCreateMilestone = canCreate(role, "milestone");
   const mayCreateTask = canCreate(role, "task");
+  const mayEditProject = canEdit(role, "project");
   const mayDeleteProject = canDelete(role, "project");
+  const mayEditMilestone = canEdit(role, "milestone");
   const mayDeleteMilestone = canDelete(role, "milestone");
 
   const { data: project, error: projectError } = await supabase
@@ -143,7 +145,7 @@ export default async function ProjectDetailPage({
       .select("id, sequence, name, description, status, target_date")
       .eq("project_id", id)
       .order("sequence", { ascending: true }),
-    canEdit
+    mayViewProjectInternals
       ? supabase
           .from("tasks")
           .select(
@@ -208,7 +210,7 @@ export default async function ProjectDetailPage({
   // can read this project page they can read its milestone attachments.
   const milestoneIds = (milestones ?? []).map((m) => m.id);
   const attachmentCountByMilestone = new Map<string, number>();
-  if (canEdit && milestoneIds.length > 0) {
+  if (mayViewProjectInternals && milestoneIds.length > 0) {
     // Hidden from sales entirely (see toggle render below) so we skip the
     // query for sales — saves a round-trip and matches the project-level
     // AttachmentsCard which is also hidden for sales further down.
@@ -250,7 +252,7 @@ export default async function ProjectDetailPage({
             )} · PM: {pmDisplay} ·{" "}
             {formatDate(project.started_at)} →{" "}
             {formatDate(project.expected_end_at)}
-            {!canEdit ? (
+            {!mayViewProjectInternals ? (
               <span className="text-xs">
                 {" "}· Read-only view · {completedMilestones} /{" "}
                 {totalMilestones} milestones complete
@@ -275,6 +277,14 @@ export default async function ProjectDetailPage({
                 }
               >
                 Add milestone
+              </Button>
+            ) : null}
+            {mayEditProject ? (
+              <Button
+                variant="outline"
+                render={<Link href={`/dashboard/projects/${id}/edit`} />}
+              >
+                Edit
               </Button>
             ) : null}
             {mayDeleteProject ? (
@@ -305,7 +315,7 @@ export default async function ProjectDetailPage({
             <CardHeader>
               <CardTitle className="text-base">No milestones yet</CardTitle>
               <CardDescription>
-                {canEdit
+                {mayViewProjectInternals
                   ? "Add the first phase of this project to start breaking work down."
                   : "No milestones to show yet."}
               </CardDescription>
@@ -375,6 +385,19 @@ export default async function ProjectDetailPage({
                           Add task
                         </Button>
                       ) : null}
+                      {mayEditMilestone ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          render={
+                            <Link
+                              href={`/dashboard/projects/${id}/milestones/${milestone.id}/edit`}
+                            />
+                          }
+                        >
+                          Edit
+                        </Button>
+                      ) : null}
                       {mayDeleteMilestone ? (
                         <DeleteAction
                           title={`Delete milestone "${milestone.name}"?`}
@@ -388,7 +411,7 @@ export default async function ProjectDetailPage({
                     </div>
                   </div>
                 </CardHeader>
-                {canEdit ? (
+                {mayViewProjectInternals ? (
                 <CardContent className="flex flex-col gap-4">
                   {milestoneTasks.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
@@ -552,7 +575,7 @@ export default async function ProjectDetailPage({
         the whole card. Sales who need a file should pull it from the
         deal/contact page where it was attached originally.
       */}
-      {canEdit ? (
+      {mayViewProjectInternals ? (
         <AttachmentsCard
           entityType="project"
           entityId={project.id}

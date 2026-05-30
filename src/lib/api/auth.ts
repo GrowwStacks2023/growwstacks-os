@@ -1,6 +1,9 @@
 import { createHash } from "node:crypto";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import type { Database } from "@/types/database";
+
+type ApiKeyRole = Database["public"]["Enums"]["user_role"];
 
 // ─── /api/v1/* authentication ──────────────────────────────────────────
 // The public API is gated by API keys, NOT by Supabase auth sessions.
@@ -34,6 +37,11 @@ export type AuthSuccess = {
   ok: true;
   keyId: string;
   scope: "read" | "read_write";
+  // Role baked into the key at generation time. The Phase C CHECK
+  // constraint on api_keys restricts this to 'admin' until role-scoped
+  // keys ship; handlers still re-check defensively in case the
+  // constraint is ever dropped.
+  role: ApiKeyRole;
 };
 
 export type AuthFailure = {
@@ -81,7 +89,7 @@ export async function authenticateApiRequest(
 
   const { data, error } = await admin
     .from("api_keys")
-    .select("id, scope, revoked_at")
+    .select("id, scope, role, revoked_at")
     .eq("key_hash", keyHash)
     .maybeSingle();
 
@@ -105,6 +113,20 @@ export async function authenticateApiRequest(
     };
   }
 
+  // Defensive: the CHECK constraint api_keys_role_admin_only enforces
+  // role='admin', but if a future migration relaxes it without updating
+  // the handlers, refuse non-admin keys here so we don't silently grant
+  // wider access than intended.
+  if (data.role !== "admin") {
+    return {
+      ok: false,
+      status: 403,
+      error: "Only admin-role API keys are accepted by this API version.",
+      code: "role_not_supported",
+      keyId: null,
+    };
+  }
+
   // Bump last_used_at, non-fatal.
   await admin
     .from("api_keys")
@@ -116,6 +138,7 @@ export async function authenticateApiRequest(
     ok: true,
     keyId: data.id,
     scope: data.scope as "read" | "read_write",
+    role: data.role,
   };
 }
 

@@ -14,7 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { canDelete } from "@/lib/access";
+import { canDelete, canEdit } from "@/lib/access";
 import { getCurrentRole } from "@/lib/access-server";
 import { userDisplay } from "@/lib/display";
 import { TASK_PRIORITY, TASK_STATUS } from "@/lib/status-colors";
@@ -35,6 +35,7 @@ export default async function ContactDetailPage({
 }) {
   const { id } = await params;
   const role = await getCurrentRole();
+  const mayEdit = canEdit(role, "contact");
   const mayDelete = canDelete(role, "contact");
   const supabase = await createClient();
 
@@ -100,16 +101,28 @@ export default async function ContactDetailPage({
           ) : null
         }
         action={
-          mayDelete ? (
-            <DeleteAction
-              title={`Delete ${contact.name}?`}
-              description="This cannot be undone. Deals, projects, or tasks referencing this contact must be detached first."
-              onConfirm={async () => {
-                "use server";
-                return deleteContact(id);
-              }}
-              redirectTo="/dashboard/contacts"
-            />
+          mayEdit || mayDelete ? (
+            <div className="flex items-center gap-2">
+              {mayEdit ? (
+                <Button
+                  variant="outline"
+                  render={<Link href={`/dashboard/contacts/${id}/edit`} />}
+                >
+                  Edit
+                </Button>
+              ) : null}
+              {mayDelete ? (
+                <DeleteAction
+                  title={`Delete ${contact.name}?`}
+                  description="This cannot be undone. Deals, projects, or tasks referencing this contact must be detached first."
+                  onConfirm={async () => {
+                    "use server";
+                    return deleteContact(id);
+                  }}
+                  redirectTo="/dashboard/contacts"
+                />
+              ) : null}
+            </div>
           ) : null
         }
       />

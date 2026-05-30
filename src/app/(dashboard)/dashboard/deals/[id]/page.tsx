@@ -15,7 +15,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { canDelete } from "@/lib/access";
+import { canDelete, canEdit } from "@/lib/access";
 import { getCurrentRole } from "@/lib/access-server";
 import { userDisplay } from "@/lib/display";
 import {
@@ -60,6 +60,7 @@ export default async function DealDetailPage({
 }) {
   const { id } = await params;
   const role = await getCurrentRole();
+  const mayEdit = canEdit(role, "deal");
   const mayDelete = canDelete(role, "deal");
   const supabase = await createClient();
 
@@ -134,16 +135,28 @@ export default async function DealDetailPage({
           </>
         }
         action={
-          mayDelete ? (
-            <DeleteAction
-              title={`Delete ${deal.title}?`}
-              description="This cannot be undone. Projects or payments derived from this deal must be removed first."
-              onConfirm={async () => {
-                "use server";
-                return deleteDeal(id);
-              }}
-              redirectTo="/dashboard/deals"
-            />
+          mayEdit || mayDelete ? (
+            <div className="flex items-center gap-2">
+              {mayEdit ? (
+                <Button
+                  variant="outline"
+                  render={<Link href={`/dashboard/deals/${id}/edit`} />}
+                >
+                  Edit
+                </Button>
+              ) : null}
+              {mayDelete ? (
+                <DeleteAction
+                  title={`Delete ${deal.title}?`}
+                  description="This cannot be undone. Projects or payments derived from this deal must be removed first."
+                  onConfirm={async () => {
+                    "use server";
+                    return deleteDeal(id);
+                  }}
+                  redirectTo="/dashboard/deals"
+                />
+              ) : null}
+            </div>
           ) : null
         }
       />

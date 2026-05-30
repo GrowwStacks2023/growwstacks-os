@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { canDelete, canEdit } from "@/lib/access";
 import { getCurrentRole } from "@/lib/access-server";
+import { diffPayload, logEntityUpdate } from "@/lib/activity-log";
 import { createClient } from "@/lib/supabase/server";
 
 export type UpdateContactResult = { ok: true } | { ok: false; error: string };
@@ -27,19 +28,49 @@ export async function updateContact(input: {
   if (!name) return { ok: false, error: "Contact name is required." };
 
   const supabase = await createClient();
+
+  const { data: before } = await supabase
+    .from("contacts")
+    .select("id, name, company_id, email, phone, whatsapp, role, is_primary")
+    .eq("id", input.id)
+    .maybeSingle();
+  if (!before) {
+    return { ok: false, error: "Contact not found." };
+  }
+
+  const after = {
+    name,
+    company_id: input.companyId,
+    email: input.email,
+    phone: input.phone,
+    whatsapp: input.whatsapp,
+    role: input.role,
+    is_primary: input.isPrimary,
+  };
+
   const { error } = await supabase
     .from("contacts")
-    .update({
-      name,
-      company_id: input.companyId,
-      email: input.email,
-      phone: input.phone,
-      whatsapp: input.whatsapp,
-      role: input.role,
-      is_primary: input.isPrimary,
-    })
+    .update(after)
     .eq("id", input.id);
   if (error) return { ok: false, error: error.message };
+
+  const {
+    data: { user: actor },
+  } = await supabase.auth.getUser();
+  await logEntityUpdate(supabase, {
+    entityType: "contact",
+    entityId: input.id,
+    actorId: actor?.id ?? null,
+    diff: diffPayload(before, after, [
+      "name",
+      "company_id",
+      "email",
+      "phone",
+      "whatsapp",
+      "role",
+      "is_primary",
+    ]),
+  });
 
   revalidatePath("/dashboard/contacts");
   revalidatePath(`/dashboard/contacts/${input.id}`);
