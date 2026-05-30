@@ -18,6 +18,7 @@ export default async function NewProjectPage() {
       .select("id, name, email")
       .in("role", ["pm", "admin"])
       .eq("is_active", true)
+      .is("deleted_at", null)
       .order("name", { ascending: true }),
     supabase
       .from("contacts")

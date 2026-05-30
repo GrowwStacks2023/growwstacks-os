@@ -148,7 +148,15 @@ export default async function DashboardPage() {
     ? supabase.from("deals").select("stage, value_inr, value_usd")
     : null;
 
-  const [tasksResult, projectsResult, dealsResult] = await Promise.all([
+  const isDeveloper = role === "developer";
+
+  const [
+    tasksResult,
+    projectsResult,
+    dealsResult,
+    devMembershipResult,
+    devTaskProjectResult,
+  ] = await Promise.all([
     supabase
       .from("tasks")
       .select(
@@ -162,18 +170,49 @@ export default async function DashboardPage() {
     supabase
       .from("projects")
       .select(
-        "id, name, expected_end_at, company:companies(name), pm:users(name, email)"
+        "id, name, expected_end_at, company:companies(name), pm:users!projects_pm_id_fkey(name, email)"
       )
       .eq("status", "active")
       .order("created_at", { ascending: false }),
     dealsPromise,
+    // Developer scoping (same union as /dashboard/projects): team
+    // memberships + projects where they have a task assigned. Fired
+    // in parallel; we only consume the results when isDeveloper.
+    isDeveloper
+      ? supabase
+          .from("project_team_members")
+          .select("project_id")
+          .eq("user_id", user.id)
+      : Promise.resolve({ data: [] as { project_id: string }[] }),
+    isDeveloper
+      ? supabase
+          .from("tasks")
+          .select("project_id")
+          .eq("assignee_id", user.id)
+          .not("project_id", "is", null)
+      : Promise.resolve({ data: [] as { project_id: string | null }[] }),
   ]);
 
   const openTasks = (tasksResult.data ?? []) as OpenTaskRow[];
   const openTasksTotal = tasksResult.count ?? openTasks.length;
   const moreTasks = Math.max(0, openTasksTotal - openTasks.length);
 
-  const activeProjects = (projectsResult.data ?? []) as ActiveProjectRow[];
+  let activeProjects = (projectsResult.data ?? []) as ActiveProjectRow[];
+
+  // For developers, narrow Active Projects (and the downstream KPI count)
+  // to projects they reach via team membership OR a task assignment.
+  // Mirrors /dashboard/projects so the two pages don't disagree.
+  if (isDeveloper) {
+    const allowedIds = new Set<string>();
+    for (const m of devMembershipResult.data ?? []) {
+      allowedIds.add(m.project_id);
+    }
+    for (const t of devTaskProjectResult.data ?? []) {
+      if (t.project_id) allowedIds.add(t.project_id);
+    }
+    activeProjects = activeProjects.filter((p) => allowedIds.has(p.id));
+  }
+
   const activeProjectIds = activeProjects.map((p) => p.id);
 
   const milestoneStats = new Map<string, { total: number; completed: number }>();
@@ -492,7 +531,13 @@ export default async function DashboardPage() {
                               {project.name}
                             </div>
                             <div className="text-[12px] text-ink-400">
-                              <span>{project.company?.name ?? "—"}</span>
+                              <span>
+                                {project.company?.name ?? (
+                                  <span className="italic text-ink-400">
+                                    Internal
+                                  </span>
+                                )}
+                              </span>
                               {targetLabel ? (
                                 <>
                                   {" · "}

@@ -15,6 +15,8 @@ const initialState: SignInState = { error: null };
 const NOTICES: Record<string, string> = {
   account_deactivated:
     "Your account has been deactivated. Contact an admin if you think this is wrong.",
+  account_deleted:
+    "Your account has been deleted. Contact an admin if you need access again — they'll need to re-invite you as a fresh user.",
   session_expired:
     "Your previous session expired. Sign in again to continue.",
 };

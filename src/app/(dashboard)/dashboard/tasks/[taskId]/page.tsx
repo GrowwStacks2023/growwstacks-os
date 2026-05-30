@@ -1,9 +1,13 @@
 import { notFound } from "next/navigation";
 
 import { AttachmentsCard } from "@/components/attachments";
+import { DeleteAction } from "@/components/delete-action";
 import { Page, PageHeader, type Crumb } from "@/components/page-shell";
+import { deleteTask } from "@/components/tasks/mutations";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { canDelete } from "@/lib/access";
+import { getCurrentRole } from "@/lib/access-server";
 import { userDisplay } from "@/lib/display";
 import { TASK_PRIORITY, TASK_STATUS } from "@/lib/status-colors";
 import { createClient } from "@/lib/supabase/server";
@@ -31,6 +35,8 @@ export default async function UniversalTaskDetailPage({
   params: Promise<{ taskId: string }>;
 }) {
   const { taskId } = await params;
+  const role = await getCurrentRole();
+  const mayDelete = canDelete(role, "task");
   const supabase = await createClient();
 
   // Two FKs to users (assignee_id, pm_id) → must name the constraint
@@ -124,6 +130,19 @@ export default async function UniversalTaskDetailPage({
               {status.label}
             </Badge>
           </>
+        }
+        action={
+          mayDelete ? (
+            <DeleteAction
+              title={`Delete task "${task.title}"?`}
+              description="This cannot be undone."
+              onConfirm={async () => {
+                "use server";
+                return deleteTask(taskId);
+              }}
+              redirectTo="/dashboard/tasks"
+            />
+          ) : null
         }
       />
 

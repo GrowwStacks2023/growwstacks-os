@@ -345,6 +345,100 @@ export type ReactivateUserResult =
   | { ok: true }
   | { ok: false; error: string };
 
+export type DeleteUserResult =
+  | { ok: true }
+  | { ok: false; error: string };
+
+// Hard-delete a user. Tombstone pattern:
+//   1. UPDATE public.users SET deleted_at=now(), is_active=false,
+//      deactivated_at=now(), deactivated_by=actor.
+//      This preserves the row so tasks.assignee_id (and every other
+//      reference) keeps pointing at a real user record — historical
+//      task views, audit logs, payment recorders all continue to
+//      resolve to "Former: <name>".
+//   2. auth.admin.deleteUser(userId) — removes from auth.users. The
+//      Phase A migration changed the public.users.id → auth.users(id)
+//      FK from CASCADE to NO ACTION specifically so this delete does
+//      NOT touch the tombstoned public.users row.
+//
+// Irreversible: re-inviting the same email creates a brand new
+// auth.users + public.users with a NEW uuid. The tombstone row remains
+// untouched (different uuid, no collision on the unique email index
+// because the tombstone row's email stays put).
+export async function deleteUser(userId: string): Promise<DeleteUserResult> {
+  const role = await getCurrentRole();
+  if (role !== "admin") {
+    return { ok: false, error: "Not authorized." };
+  }
+  if (!userId) return { ok: false, error: "Missing user id." };
+
+  const supabase = await createClient();
+  const {
+    data: { user: actor },
+  } = await supabase.auth.getUser();
+  if (!actor) return { ok: false, error: "You must be signed in." };
+  if (actor.id === userId) {
+    return {
+      ok: false,
+      error: "You can't delete yourself. Ask another admin.",
+    };
+  }
+
+  // Step 1: tombstone the row. Uses session client so the
+  // enforce_user_self_update trigger sees `current_user_role() = 'admin'`.
+  const nowIso = new Date().toISOString();
+  const { error: tombstoneError } = await supabase
+    .from("users")
+    .update({
+      deleted_at: nowIso,
+      is_active: false,
+      deactivated_at: nowIso,
+      deactivated_by: actor.id,
+    })
+    .eq("id", userId);
+
+  if (tombstoneError) {
+    return {
+      ok: false,
+      error: `Couldn't tombstone the user record: ${tombstoneError.message}`,
+    };
+  }
+
+  // Step 2: hard-delete from auth.users via the admin client. Does NOT
+  // cascade to public.users now that the FK is NO ACTION.
+  const admin = createAdminClient();
+  const { error: authDeleteError } =
+    await admin.auth.admin.deleteUser(userId);
+
+  if (authDeleteError) {
+    // Auth deletion failed but tombstone succeeded. The user is already
+    // marked deleted_at + is_active=false, which means middleware will
+    // bounce them on next request — they're already locked out. Surface
+    // the auth error so admin can finish the cleanup manually.
+    return {
+      ok: false,
+      error:
+        `User tombstoned but auth.users delete failed (${authDeleteError.message}). ` +
+        "They cannot log in. Remove from auth.users in Supabase Studio.",
+    };
+  }
+
+  await supabase
+    .from("activity_log")
+    .insert({
+      entity_type: "user",
+      entity_id: userId,
+      action: "delete_user",
+      actor_id: actor.id,
+      after_state: { deleted_at: nowIso },
+    })
+    .then(() => undefined, () => undefined);
+
+  revalidatePath("/dashboard/users");
+
+  return { ok: true };
+}
+
 export async function reactivateUser(
   userId: string
 ): Promise<ReactivateUserResult> {
@@ -359,6 +453,22 @@ export async function reactivateUser(
     data: { user: actor },
   } = await supabase.auth.getUser();
   if (!actor) return { ok: false, error: "You must be signed in." };
+
+  // Refuse to reactivate a tombstoned user — they no longer exist in
+  // auth.users so reactivating the public.users row would create a
+  // ghost. Re-invite is the only path back.
+  const { data: existing } = await supabase
+    .from("users")
+    .select("deleted_at")
+    .eq("id", userId)
+    .maybeSingle();
+  if (existing?.deleted_at != null) {
+    return {
+      ok: false,
+      error:
+        "This user was deleted. Re-invite them as a new user instead.",
+    };
+  }
 
   const { error: updateError } = await supabase
     .from("users")

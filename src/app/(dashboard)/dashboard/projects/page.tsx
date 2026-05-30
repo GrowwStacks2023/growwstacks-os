@@ -26,12 +26,53 @@ export default async function ProjectsPage() {
   // button independently.
   const mayCreate = canCreate(role, "project");
 
-  const { data: projects, error } = await supabase
+  // Developers see projects where EITHER they're on the team OR they
+  // have a task assigned. After migration 0021 the trigger keeps these
+  // in sync (assigning a task auto-adds the assignee to the team), but
+  // the union below stays as a safety net against historical drift —
+  // and means brand-new task assignments are visible before the trigger
+  // has had a chance to fire if there's any replication lag.
+  // Other roles see everything per the matrix.
+  let scopedIds: string[] | null = null;
+  if (role === "developer") {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user) {
+      const [{ data: memberships }, { data: taskProjects }] = await Promise.all([
+        supabase
+          .from("project_team_members")
+          .select("project_id")
+          .eq("user_id", user.id),
+        supabase
+          .from("tasks")
+          .select("project_id")
+          .eq("assignee_id", user.id)
+          .not("project_id", "is", null),
+      ]);
+      const ids = new Set<string>();
+      for (const m of memberships ?? []) ids.add(m.project_id);
+      for (const t of taskProjects ?? []) {
+        if (t.project_id) ids.add(t.project_id);
+      }
+      scopedIds = Array.from(ids);
+    } else {
+      scopedIds = [];
+    }
+  }
+
+  let projectsQuery = supabase
     .from("projects")
     .select(
-      "id, name, status, expected_end_at, company:companies(name), pm:users(name, email)"
+      "id, name, status, expected_end_at, company:companies(name), pm:users!projects_pm_id_fkey(name, email)"
     )
     .order("created_at", { ascending: false });
+  if (scopedIds !== null) {
+    projectsQuery = scopedIds.length > 0
+      ? projectsQuery.in("id", scopedIds)
+      : projectsQuery.in("id", ["00000000-0000-0000-0000-000000000000"]);
+  }
+  const { data: projects, error } = await projectsQuery;
 
   // Milestone progress per project (admin/sales/pm/dev all benefit from
   // the summary; sales especially needs it as their read-only signal of
@@ -95,7 +136,11 @@ export default async function ProjectsPage() {
           </Link>
         ),
         company: (
-          <span className="text-ink-500">{project.company?.name ?? "—"}</span>
+          <span className="text-ink-500">
+            {project.company?.name ?? (
+              <span className="text-ink-400 italic">Internal project</span>
+            )}
+          </span>
         ),
         status: (
           <Badge variant={status.variant} className={status.className}>
@@ -158,7 +203,11 @@ export default async function ProjectsPage() {
         empty={
           <div className="flex flex-col items-center gap-3">
             <p className="text-ink-700">
-              {mayCreate ? "No projects yet." : "No projects to show yet."}
+              {mayCreate
+                ? "No projects yet."
+                : role === "developer"
+                  ? "You don't have any projects or tasks yet."
+                  : "No projects to show yet."}
             </p>
             {mayCreate ? (
               <Button render={<Link href="/dashboard/projects/new" />}>

@@ -2,9 +2,10 @@
 
 import { useState, useTransition } from "react";
 
+import { DeleteAction } from "@/components/delete-action";
 import { Button } from "@/components/ui/button";
 
-import { deactivateUser, reactivateUser } from "./actions";
+import { deactivateUser, deleteUser, reactivateUser } from "./actions";
 
 export function DeactivateButton({
   userId,
@@ -73,5 +74,33 @@ export function ReactivateButton({ userId }: { userId: string }) {
         <span className="text-[12px] text-red-600">{error}</span>
       ) : null}
     </div>
+  );
+}
+
+// Hard-delete (tombstone). See server-action comment in actions.ts for
+// the tombstone mechanism. The confirmation copy is intentionally
+// strong — there's no undo.
+export function DeleteUserButton({
+  userId,
+  userLabel,
+}: {
+  userId: string;
+  userLabel: string;
+}) {
+  return (
+    <DeleteAction
+      triggerLabel="Delete"
+      title={`Delete ${userLabel}?`}
+      description={
+        <>
+          This will permanently delete <strong>{userLabel}</strong>. Their
+          work history on tasks, projects, and payments will be preserved
+          (they&apos;ll appear as &quot;Former&quot; on those rows), but they
+          cannot be reactivated. To bring them back, you&apos;ll need to
+          re-invite them as a fresh user.
+        </>
+      }
+      onConfirm={async () => deleteUser(userId)}
+    />
   );
 }

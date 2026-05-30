@@ -94,18 +94,14 @@ export function NewProjectForm({
       setError("Please pick a contact for this project.");
       return;
     }
-    if (!derivedCompanyId) {
-      setError(
-        "This contact has no company. Add a company to the contact before creating the project."
-      );
-      return;
-    }
+    // company_id is now nullable. If the chosen contact has no company,
+    // the project is "internal" — submit succeeds with company_id = null.
 
     setPending(true);
 
     const result = await createProjectDirect({
       name,
-      companyId: derivedCompanyId,
+      companyId: derivedCompanyId, // null OK now (internal projects)
       contactId,
       description: nullIfBlank(description),
       status,
@@ -209,7 +205,7 @@ export function NewProjectForm({
         <Field
           id="company_derived"
           label="Company"
-          description="Auto-filled from the contact above."
+          description="Auto-filled from the contact above. Leave blank for internal projects."
         >
           <div
             id="company_derived"
@@ -217,7 +213,7 @@ export function NewProjectForm({
           >
             {contactId
               ? derivedCompanyName ?? (
-                  <span className="text-ink-400">(no company)</span>
+                  <span className="text-ink-400">Internal project (no company)</span>
                 )
               : (
                   <span className="text-ink-400">Pick a contact first</span>

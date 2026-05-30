@@ -68,14 +68,13 @@ export function NewTaskForm({
   context,
   assignees,
   cancelHref,
-  // PM is only meaningfully selectable for standalone tasks. For milestone
-  // tasks the project's PM is the implicit owner, so the field is hidden.
+  // PM picker — required prop now. Per Task 26 B.1, the field is shown
+  // on every task-create surface (milestone, deal, contact, standalone).
   pmCandidates,
-  // Optional default for assignee (used when "Add task" on a contact wants
-  // to suggest the current user, but we leave that to callers).
   defaultAssigneeId,
-  // Optional default for pm — when admin adds a standalone task and wants
-  // it filed under themselves.
+  // When a PM-role user opens the create form, the page passes
+  // defaultPmId = their own user.id so they don't have to pick
+  // themselves (but the field stays editable).
   defaultPmId,
 }: {
   context: NewTaskFormContext;
@@ -87,8 +86,10 @@ export function NewTaskForm({
 }) {
   const router = useRouter();
   const isPickContact = context.kind === "pickContact";
-  // PM field shows for any non-milestone path (deal, contact, pickContact).
-  const showPmField = context.kind !== "milestone";
+  // PM field is now shown on every task-create surface (corrected matrix).
+  // Even on milestone-tied tasks, an explicit pm_id makes the task show
+  // up in that PM's "My tasks" view without depending on milestone joins.
+  const showPmField = true;
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");

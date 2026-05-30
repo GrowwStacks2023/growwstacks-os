@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { AttachmentsCard } from "@/components/attachments";
+import { DeleteAction } from "@/components/delete-action";
 import { Page, PageHeader } from "@/components/page-shell";
 import { DealPaymentsCard } from "@/components/payments";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -14,6 +15,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { canDelete } from "@/lib/access";
+import { getCurrentRole } from "@/lib/access-server";
 import { userDisplay } from "@/lib/display";
 import {
   DEAL_SOURCE,
@@ -22,6 +25,8 @@ import {
   TASK_STATUS,
 } from "@/lib/status-colors";
 import { createClient } from "@/lib/supabase/server";
+
+import { deleteDeal } from "../mutations";
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
   month: "short",
@@ -54,6 +59,8 @@ export default async function DealDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const role = await getCurrentRole();
+  const mayDelete = canDelete(role, "deal");
   const supabase = await createClient();
 
   const { data: deal, error } = await supabase
@@ -125,6 +132,19 @@ export default async function DealDetailPage({
               {source.label}
             </Badge>
           </>
+        }
+        action={
+          mayDelete ? (
+            <DeleteAction
+              title={`Delete ${deal.title}?`}
+              description="This cannot be undone. Projects or payments derived from this deal must be removed first."
+              onConfirm={async () => {
+                "use server";
+                return deleteDeal(id);
+              }}
+              redirectTo="/dashboard/deals"
+            />
+          ) : null
         }
       />
 

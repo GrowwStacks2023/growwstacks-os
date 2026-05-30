@@ -53,7 +53,11 @@ export default async function TasksPage({
   } = await supabase.auth.getUser();
 
   const { scope: scopeParam } = await searchParams;
-  const scope: Scope = scopeParam === "all" ? "all" : "mine";
+  // Developers are forced to "mine" — they don't get an "all tasks" view
+  // even via URL tampering. Sales can use either scope; admin/pm too.
+  const requestedScope: Scope = scopeParam === "all" ? "all" : "mine";
+  const scope: Scope = role === "developer" ? "mine" : requestedScope;
+  const showScopeToggle = role !== "developer";
 
   // Fetch the task rows in one query. The Postgres FK ambiguity between
   // tasks.assignee_id and tasks.pm_id forces an explicit FK-hint on the
@@ -228,22 +232,24 @@ export default async function TasksPage({
         description="Everything assigned to you or that you own — across projects, deals, and contacts."
         action={
           <div className="flex items-center gap-2">
-            <div className="inline-flex rounded-md border border-border bg-card p-1 text-sm">
-              <Button
-                size="sm"
-                variant={myActive ? "secondary" : "ghost"}
-                render={<Link href="/dashboard/tasks?scope=mine" />}
-              >
-                My tasks
-              </Button>
-              <Button
-                size="sm"
-                variant={!myActive ? "secondary" : "ghost"}
-                render={<Link href="/dashboard/tasks?scope=all" />}
-              >
-                All tasks
-              </Button>
-            </div>
+            {showScopeToggle ? (
+              <div className="inline-flex rounded-md border border-border bg-card p-1 text-sm">
+                <Button
+                  size="sm"
+                  variant={myActive ? "secondary" : "ghost"}
+                  render={<Link href="/dashboard/tasks?scope=mine" />}
+                >
+                  My tasks
+                </Button>
+                <Button
+                  size="sm"
+                  variant={!myActive ? "secondary" : "ghost"}
+                  render={<Link href="/dashboard/tasks?scope=all" />}
+                >
+                  All tasks
+                </Button>
+              </div>
+            ) : null}
             {mayCreate ? (
               <Button render={<Link href="/dashboard/tasks/new" />}>
                 New task

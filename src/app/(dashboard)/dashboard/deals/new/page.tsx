@@ -23,6 +23,7 @@ export default async function NewDealPage() {
       .select("id, name, email")
       .in("role", ["sales", "admin", "pm"])
       .eq("is_active", true)
+      .is("deleted_at", null)
       .order("name", { ascending: true }),
   ]);
 

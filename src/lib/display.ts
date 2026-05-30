@@ -3,6 +3,10 @@
 type UserLike = {
   name?: string | null;
   email?: string | null;
+  // Optional — when caller's SELECT includes this column, tombstoned
+  // (hard-deleted) users get a "(Former)" suffix so historical
+  // references stay readable without lying about who's still around.
+  deleted_at?: string | null;
 };
 
 // "Best label for a user". We never want to fall back to the user id — a
@@ -20,8 +24,7 @@ export function userDisplay(
 ): string {
   if (!u) return fallback;
   const name = u.name?.trim();
-  if (name) return name;
   const email = u.email?.trim();
-  if (email) return email;
-  return fallback;
+  const label = name || email || fallback;
+  return u.deleted_at ? `${label} (Former)` : label;
 }

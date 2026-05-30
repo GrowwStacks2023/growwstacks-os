@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { AttachmentsCard } from "@/components/attachments";
+import { DeleteAction } from "@/components/delete-action";
 import { Page, PageHeader } from "@/components/page-shell";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +13,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { canDelete } from "@/lib/access";
+import { getCurrentRole } from "@/lib/access-server";
 import { createClient } from "@/lib/supabase/server";
+
+import { deleteCompany } from "../mutations";
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
   month: "short",
@@ -26,6 +31,8 @@ export default async function CompanyDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const role = await getCurrentRole();
+  const mayDelete = canDelete(role, "company");
   const supabase = await createClient();
 
   const { data: company, error } = await supabase
@@ -70,6 +77,19 @@ export default async function CompanyDetailPage({
           <Badge variant="outline" className="capitalize">
             {company.type}
           </Badge>
+        }
+        action={
+          mayDelete ? (
+            <DeleteAction
+              title={`Delete ${company.name}?`}
+              description="This cannot be undone. Any contacts, deals, or projects attached to this company must be removed first."
+              onConfirm={async () => {
+                "use server";
+                return deleteCompany(id);
+              }}
+              redirectTo="/dashboard/companies"
+            />
+          ) : null
         }
       />
 

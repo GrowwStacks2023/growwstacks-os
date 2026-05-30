@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { AttachmentsCard } from "@/components/attachments";
 import { MilestoneAttachmentsToggle } from "@/components/attachments/milestone-attachments-toggle";
+import { DeleteAction } from "@/components/delete-action";
 import { Page, PageHeader, Section } from "@/components/page-shell";
 import { PaymentsCard } from "@/components/payments";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -15,7 +16,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { canCreate, canEditProjectArea } from "@/lib/access";
+import { canCreate, canDelete, canEditProjectArea } from "@/lib/access";
 import { getCurrentRole } from "@/lib/access-server";
 import { userDisplay } from "@/lib/display";
 import {
@@ -25,6 +26,15 @@ import {
   TASK_STATUS,
 } from "@/lib/status-colors";
 import { createClient } from "@/lib/supabase/server";
+
+import { deleteProject } from "../mutations";
+import { deleteMilestone } from "./milestones/mutations";
+import {
+  AddTeamMemberPicker,
+  RemoveTeamMemberButton,
+  TeamMemberChip,
+  type TeamCandidate,
+} from "./team-controls";
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
   month: "short",
@@ -57,16 +67,48 @@ export default async function ProjectDetailPage({
   const supabase = await createClient();
   const role = await getCurrentRole();
   const canEdit = canEditProjectArea(role);
+
+  // Developer access scoping: a developer can reach a project if EITHER
+  // they're on the team OR they have a task assigned in it. After
+  // migration 0021 these two converge in normal use, but the OR keeps
+  // the page reachable for legitimate task assignments before the
+  // trigger's effect is visible.
+  if (role === "developer") {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) redirect("/login");
+    const [{ data: membership }, { data: taskRow }] = await Promise.all([
+      supabase
+        .from("project_team_members")
+        .select("user_id")
+        .eq("project_id", id)
+        .eq("user_id", user.id)
+        .maybeSingle(),
+      supabase
+        .from("tasks")
+        .select("id")
+        .eq("project_id", id)
+        .eq("assignee_id", user.id)
+        .limit(1)
+        .maybeSingle(),
+    ]);
+    if (!membership && !taskRow) {
+      redirect("/dashboard/projects");
+    }
+  }
   // Matrix: developer cannot create milestones or tasks (read-only for
   // them on these). canEditProjectArea includes developer, so we gate
   // the Add buttons separately.
   const mayCreateMilestone = canCreate(role, "milestone");
   const mayCreateTask = canCreate(role, "task");
+  const mayDeleteProject = canDelete(role, "project");
+  const mayDeleteMilestone = canDelete(role, "milestone");
 
   const { data: project, error: projectError } = await supabase
     .from("projects")
     .select(
-      "id, name, description, status, started_at, expected_end_at, company_id, company:companies(name), pm:users(name, email), deal:deals(value_inr, value_usd)"
+      "id, name, description, status, started_at, expected_end_at, company_id, company:companies(name), pm:users!projects_pm_id_fkey(name, email), deal:deals(value_inr, value_usd)"
     )
     .eq("id", id)
     .maybeSingle();
@@ -88,7 +130,14 @@ export default async function ProjectDetailPage({
   // For sales (read-only summary), we don't need the task drilldown —
   // skip that fetch entirely. Milestones are still fetched so the summary
   // can show progress.
-  const [{ data: milestones }, { data: tasks }] = await Promise.all([
+  const showTeamSection = role !== "sales";
+  const mayManageTeam = role === "admin" || role === "pm";
+
+  const [
+    { data: milestones },
+    { data: tasks },
+    { data: teamRows },
+  ] = await Promise.all([
     supabase
       .from("milestones")
       .select("id, sequence, name, description, status, target_date")
@@ -103,7 +152,47 @@ export default async function ProjectDetailPage({
           .eq("project_id", id)
           .order("created_at", { ascending: true })
       : Promise.resolve({ data: [] as TaskRow[] }),
+    showTeamSection
+      ? supabase
+          .from("project_team_members")
+          .select(
+            "user_id, added_at, member:users!project_team_members_user_id_fkey(id, name, email, role, is_active)"
+          )
+          .eq("project_id", id)
+          .order("added_at", { ascending: true })
+      : Promise.resolve({ data: [] }),
   ]);
+
+  type TeamMember = {
+    id: string;
+    name: string | null;
+    email: string;
+    role: string;
+  };
+  const team: TeamMember[] = (teamRows ?? [])
+    .map((r) => {
+      const m = r.member as unknown as
+        | { id: string; name: string | null; email: string; role: string; is_active: boolean }
+        | null;
+      return m && m.is_active
+        ? { id: m.id, name: m.name, email: m.email, role: m.role }
+        : null;
+    })
+    .filter((x): x is TeamMember => x !== null);
+
+  // Add-team-member picker: active developers not already on the team.
+  let teamCandidates: TeamCandidate[] = [];
+  if (mayManageTeam) {
+    const memberIds = team.map((m) => m.id);
+    const { data: devs } = await supabase
+      .from("users")
+      .select("id, name, email")
+      .eq("role", "developer")
+      .eq("is_active", true)
+      .is("deleted_at", null)
+      .order("name", { ascending: true });
+    teamCandidates = (devs ?? []).filter((u) => !memberIds.includes(u.id));
+  }
 
   const tasksByMilestone = new Map<string, TaskRow[]>();
   for (const task of (tasks ?? []) as TaskRow[]) {
@@ -156,7 +245,9 @@ export default async function ProjectDetailPage({
         title={project.name}
         description={
           <>
-            {project.company?.name ?? "—"} · PM: {pmDisplay} ·{" "}
+            {project.company?.name ?? (
+              <span className="italic text-ink-400">Internal project</span>
+            )} · PM: {pmDisplay} ·{" "}
             {formatDate(project.started_at)} →{" "}
             {formatDate(project.expected_end_at)}
             {!canEdit ? (
@@ -176,15 +267,28 @@ export default async function ProjectDetailPage({
           </Badge>
         }
         action={
-          mayCreateMilestone ? (
-            <Button
-              render={
-                <Link href={`/dashboard/projects/${id}/milestones/new`} />
-              }
-            >
-              Add milestone
-            </Button>
-          ) : null
+          <div className="flex items-center gap-2">
+            {mayCreateMilestone ? (
+              <Button
+                render={
+                  <Link href={`/dashboard/projects/${id}/milestones/new`} />
+                }
+              >
+                Add milestone
+              </Button>
+            ) : null}
+            {mayDeleteProject ? (
+              <DeleteAction
+                title={`Delete ${project.name}?`}
+                description="This will permanently delete the project AND every milestone, task, and attachment inside it. This cannot be undone."
+                onConfirm={async () => {
+                  "use server";
+                  return deleteProject(id);
+                }}
+                redirectTo="/dashboard/projects"
+              />
+            ) : null}
+          </div>
         }
       />
 
@@ -257,19 +361,31 @@ export default async function ProjectDetailPage({
                         </p>
                       ) : null}
                     </div>
-                    {mayCreateTask ? (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        render={
-                          <Link
-                            href={`/dashboard/projects/${id}/milestones/${milestone.id}/tasks/new`}
-                          />
-                        }
-                      >
-                        Add task
-                      </Button>
-                    ) : null}
+                    <div className="flex items-center gap-2">
+                      {mayCreateTask ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          render={
+                            <Link
+                              href={`/dashboard/projects/${id}/milestones/${milestone.id}/tasks/new`}
+                            />
+                          }
+                        >
+                          Add task
+                        </Button>
+                      ) : null}
+                      {mayDeleteMilestone ? (
+                        <DeleteAction
+                          title={`Delete milestone "${milestone.name}"?`}
+                          description="This will also delete every task inside this milestone. This cannot be undone."
+                          onConfirm={async () => {
+                            "use server";
+                            return deleteMilestone(milestone.id, id);
+                          }}
+                        />
+                      ) : null}
+                    </div>
                   </div>
                 </CardHeader>
                 {canEdit ? (
@@ -361,18 +477,73 @@ export default async function ProjectDetailPage({
         )}
       </Section>
 
+      {showTeamSection ? (
+        <Section
+          title="Team"
+          description={
+            mayManageTeam
+              ? "Developers added here can see the project and update their assigned tasks."
+              : "Developers on this project."
+          }
+        >
+          <Card>
+            <CardContent className="flex flex-col gap-4">
+              {team.length === 0 ? (
+                <p className="text-sm text-ink-500">
+                  No team members yet.
+                </p>
+              ) : (
+                <ul className="flex flex-wrap gap-2">
+                  {team.map((member) => (
+                    <li
+                      key={member.id}
+                      className="inline-flex items-center gap-1"
+                    >
+                      <TeamMemberChip
+                        user={{
+                          id: member.id,
+                          name: member.name,
+                          email: member.email,
+                        }}
+                      />
+                      {mayManageTeam ? (
+                        <RemoveTeamMemberButton
+                          projectId={id}
+                          userId={member.id}
+                          userLabel={member.name?.trim() || member.email}
+                        />
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {mayManageTeam ? (
+                <AddTeamMemberPicker
+                  projectId={id}
+                  candidates={teamCandidates}
+                />
+              ) : null}
+            </CardContent>
+          </Card>
+        </Section>
+      ) : null}
+
       {/*
         PaymentsCard stays for sales — the access matrix grants sales
         full payment read+write. The card itself role-gates internally
-        (devs/clients see nothing) so we render it for everyone here.
+        (devs/clients see nothing).
+        Internal projects (no company) have no payments side — payments.company_id
+        is NOT NULL, so we hide the whole card.
       */}
-      <PaymentsCard
-        projectId={project.id}
-        companyId={project.company_id}
-        expectedInr={project.deal?.value_inr ?? null}
-        expectedUsd={project.deal?.value_usd ?? null}
-        revalidatePath={`/dashboard/projects/${id}`}
-      />
+      {project.company_id ? (
+        <PaymentsCard
+          projectId={project.id}
+          companyId={project.company_id}
+          expectedInr={project.deal?.value_inr ?? null}
+          expectedUsd={project.deal?.value_usd ?? null}
+          revalidatePath={`/dashboard/projects/${id}`}
+        />
+      ) : null}
 
       {/*
         Attachments card hidden for the sales read-only view. The

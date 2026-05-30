@@ -36,7 +36,8 @@ function dateOrNull(value: string): string | null {
 
 export async function createProjectDirect(input: {
   name: string;
-  companyId: string;
+  // Nullable per migration 0020 — "internal" projects have no company.
+  companyId: string | null;
   contactId: string | null;
   description: string | null;
   status: string;
@@ -59,16 +60,7 @@ export async function createProjectDirect(input: {
   if (!input.contactId) {
     return { error: "Please pick a contact for this project.", projectId: null };
   }
-  if (!input.companyId) {
-    // Auto-fill in the UI: companyId comes from the chosen contact's
-    // company. If empty, contact has no company → reject with a clear
-    // message since projects.company_id is NOT NULL.
-    return {
-      error:
-        "Contact has no company. Add a company to the contact before creating the project.",
-      projectId: null,
-    };
-  }
+  // companyId may be null (internal project) — no further validation.
 
   const status = (PROJECT_STATUSES as readonly string[]).includes(input.status)
     ? (input.status as ProjectStatus)
@@ -125,7 +117,7 @@ export async function createProject(
 ): Promise<CreateProjectState> {
   const result = await createProjectDirect({
     name: String(formData.get("name") ?? ""),
-    companyId: String(formData.get("company_id") ?? "").trim(),
+    companyId: nullIfBlank(String(formData.get("company_id") ?? "")),
     contactId: nullIfBlank(String(formData.get("contact_id") ?? "")),
     description: nullIfBlank(String(formData.get("description") ?? "")),
     status: String(formData.get("status") ?? "planning"),

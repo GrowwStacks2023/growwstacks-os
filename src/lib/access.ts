@@ -39,39 +39,39 @@ export type Section =
 //
 // "portal" is the future client-only space. We list `client` here so a
 // later /dashboard/portal route can use canAccess('portal', role).
-// Per the Task 25 matrix:
-//   - developer: only Dashboard + Tasks in the sidebar; Projects visible
-//     in code (so a deep-link to a project they're on the team of works)
-//     but hidden from sidebar nav.
-//   - sales: no Payments (matrix tightens this — sales no longer reads
-//     payments per the new policy).
+// Task 26 corrected matrix:
+//   - PM: NO access to Deals at all. PMs handle delivery only.
+//   - Developer: Projects visible (team-member-only data via the
+//     project_team_members table, see Phase B / 0020).
+//   - Sales: no Payments.
 export const SECTION_ROLES: Record<Section, ReadonlyArray<Role>> = {
   dashboard: ["admin", "sales", "pm", "developer"],
   companies: ["admin", "sales", "pm"],
   contacts: ["admin", "sales", "pm"],
-  deals: ["admin", "sales", "pm"],
+  // Deals: admin + sales only. PM removed per corrected matrix.
+  deals: ["admin", "sales"],
   projects: ["admin", "sales", "pm", "developer"],
   tasks: ["admin", "sales", "pm", "developer"],
-  // Sales no longer included — matrix scopes payments to admin/pm only.
   payments: ["admin", "pm"],
-  // Admin surfaces — invite users, manage API keys for external integrations.
   users: ["admin"],
   integrations: ["admin"],
   portal: ["client"],
 };
 
-// Sidebar can be tighter than route access. Developer can REACH
-// /dashboard/projects via a direct link (to see a project they're on
-// the team of), but the sidebar entry is hidden — their daily workflow
-// is the Tasks list. Same for Companies/Contacts/Deals/Payments for
-// developer.
+// Sidebar can be tighter than route access. After Task 26:
+//   developer sees Dashboard + Projects + Tasks. Companies/Contacts/
+//   Deals/Payments stay hidden for them.
+//   pm explicitly hides Deals (matrix says PM has no deals access).
+//   sales hides Payments.
 const SIDEBAR_OVERRIDE: Partial<Record<Section, ReadonlyArray<Role>>> = {
   companies: ["admin", "sales", "pm"],
   contacts: ["admin", "sales", "pm"],
-  deals: ["admin", "sales", "pm"],
-  // developer DOES have access to /projects (their assigned ones), but
-  // we leave them out of the sidebar since most days they live in /tasks.
-  projects: ["admin", "sales", "pm"],
+  // Deals: PM never sees deals nav (matches SECTION_ROLES).
+  deals: ["admin", "sales"],
+  // Projects: developer DOES see this in the sidebar now per the
+  // corrected matrix. Page-level filtering by team-membership is in
+  // Phase B + RLS (Phase C).
+  projects: ["admin", "sales", "pm", "developer"],
   payments: ["admin", "pm"],
 };
 
@@ -119,25 +119,35 @@ export type Entity =
   | "user"
   | "apikey";
 
+// Task 26 corrected matrix:
+//   company  create: admin, pm                edit/delete: admin, pm
+//   contact  create: admin, pm, sales         edit: admin, pm, sales   delete: admin, pm
+//   deal     create: admin, sales             edit: admin, sales       delete: admin
+//   project  create: admin, pm                edit/delete: admin, pm
+//   milestone create: admin, pm               edit/delete: admin, pm
+//   task     create: admin, pm                edit: admin, pm (own-task: developer via canEditOwnTaskOnly)  delete: admin, pm
+//   payment  create: admin, pm                edit/delete: admin, pm
+//   user     create/edit/delete: admin only
+//   apikey   admin only
+//   attachment write: admin, pm anywhere; sales on company/contact/deal;
+//             developer on project/milestone/task they can access
+//             (the entity-scope check happens downstream via RLS).
 export function canCreate(role: Role | null, entity: Entity): boolean {
   if (!role) return false;
   switch (entity) {
     case "company":
       return role === "admin" || role === "pm";
     case "contact":
-    case "deal":
       return role === "admin" || role === "pm" || role === "sales";
+    case "deal":
+      // PM has no deals access at all per corrected matrix.
+      return role === "admin" || role === "sales";
     case "project":
     case "milestone":
     case "task":
     case "payment":
       return role === "admin" || role === "pm";
     case "attachment":
-      // Sales + dev limited by entity-level access checked downstream;
-      // admin/pm always allowed. Returning true here for sales/dev means
-      // they get past the "can I touch an attachment at all" gate; the
-      // detail page hides the upload form for sales on entities they
-      // can't write.
       return (
         role === "admin" ||
         role === "pm" ||
@@ -154,17 +164,18 @@ export function canEdit(role: Role | null, entity: Entity): boolean {
   if (!role) return false;
   switch (entity) {
     case "company":
+      return role === "admin" || role === "pm";
     case "contact":
       return role === "admin" || role === "pm" || role === "sales";
     case "deal":
+      // Sales can edit ANY deal (matches matrix). PM blocked.
+      return role === "admin" || role === "sales";
     case "project":
     case "milestone":
     case "task":
     case "payment":
       return role === "admin" || role === "pm";
     case "attachment":
-      // Attachments are immutable in v1 — only the uploader (or admin)
-      // can delete. No "edit attachment" beyond that.
       return role === "admin";
     case "user":
     case "apikey":
@@ -174,17 +185,17 @@ export function canEdit(role: Role | null, entity: Entity): boolean {
 
 export function canDelete(role: Role | null, entity: Entity): boolean {
   if (!role) return false;
-  // Delete is admin-or-pm-only for everything in this matrix except
-  // attachments (uploader can delete their own — checked downstream).
   switch (entity) {
     case "company":
     case "contact":
-    case "deal":
     case "project":
     case "milestone":
     case "task":
     case "payment":
       return role === "admin" || role === "pm";
+    case "deal":
+      // Deals delete: admin only per corrected matrix.
+      return role === "admin";
     case "attachment":
       return role === "admin";
     case "user":
@@ -193,13 +204,17 @@ export function canDelete(role: Role | null, entity: Entity): boolean {
   }
 }
 
-// Developer special case for tasks. A developer can update STATUS on
-// their assigned tasks (and add attachments — covered by the
-// attachment rules). They can't change title, due date, assignee, etc.
-// The full set of fields they're allowed to touch is intentionally
-// narrow.
-export function canEditOwnTask(role: Role | null): boolean {
+// Developer-only task editing. Combined with assignee_id check downstream
+// (the action verifies the task is assigned to the caller) AND a narrow
+// field whitelist (status + attachments only), this is the developer's
+// total edit surface.
+export function canEditOwnTaskOnly(role: Role | null): boolean {
   return role === "developer";
+}
+
+// Strict deal viewability — PM is excluded per corrected matrix.
+export function canViewDeals(role: Role | null): boolean {
+  return role === "admin" || role === "sales";
 }
 
 // Sales/PM/admin/dev all view tasks; the "which tasks" scoping happens

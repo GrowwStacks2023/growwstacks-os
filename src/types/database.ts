@@ -748,7 +748,7 @@ export type Database = {
         Row: {
           actual_end_at: string | null
           client_visible: boolean
-          company_id: string
+          company_id: string | null
           contact_id: string | null
           created_at: string
           deal_id: string | null
@@ -764,7 +764,7 @@ export type Database = {
         Insert: {
           actual_end_at?: string | null
           client_visible?: boolean
-          company_id: string
+          company_id?: string | null
           contact_id?: string | null
           created_at?: string
           deal_id?: string | null
@@ -780,7 +780,7 @@ export type Database = {
         Update: {
           actual_end_at?: string | null
           client_visible?: boolean
-          company_id?: string
+          company_id?: string | null
           contact_id?: string | null
           created_at?: string
           deal_id?: string | null
@@ -818,6 +818,49 @@ export type Database = {
           {
             foreignKeyName: "projects_pm_id_fkey"
             columns: ["pm_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_team_members: {
+        Row: {
+          added_at: string
+          added_by: string | null
+          project_id: string
+          user_id: string
+        }
+        Insert: {
+          added_at?: string
+          added_by?: string | null
+          project_id: string
+          user_id: string
+        }
+        Update: {
+          added_at?: string
+          added_by?: string | null
+          project_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_team_members_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_team_members_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_team_members_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -1020,6 +1063,7 @@ export type Database = {
           created_at: string
           deactivated_at: string | null
           deactivated_by: string | null
+          deleted_at: string | null
           email: string
           id: string
           is_active: boolean
@@ -1031,6 +1075,7 @@ export type Database = {
           created_at?: string
           deactivated_at?: string | null
           deactivated_by?: string | null
+          deleted_at?: string | null
           email: string
           id: string
           is_active?: boolean
@@ -1042,6 +1087,7 @@ export type Database = {
           created_at?: string
           deactivated_at?: string | null
           deactivated_by?: string | null
+          deleted_at?: string | null
           email?: string
           id?: string
           is_active?: boolean

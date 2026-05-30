@@ -55,15 +55,21 @@ export async function updateSession(request: NextRequest) {
   if (user && !isBypass(request.nextUrl.pathname)) {
     const { data: profile } = await supabase
       .from("users")
-      .select("is_active")
+      .select("is_active, deleted_at")
       .eq("id", user.id)
       .maybeSingle();
 
-    if (profile && profile.is_active === false) {
+    if (
+      profile &&
+      (profile.is_active === false || profile.deleted_at != null)
+    ) {
       await supabase.auth.signOut();
       const redirectUrl = request.nextUrl.clone();
       redirectUrl.pathname = "/login";
-      redirectUrl.search = "?notice=account_deactivated";
+      redirectUrl.search =
+        profile.deleted_at != null
+          ? "?notice=account_deleted"
+          : "?notice=account_deactivated";
       return NextResponse.redirect(redirectUrl);
     }
   }

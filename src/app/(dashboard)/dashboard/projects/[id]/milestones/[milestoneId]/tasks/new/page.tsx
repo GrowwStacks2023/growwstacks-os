@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Breadcrumbs, Page } from "@/components/page-shell";
 import { NewTaskForm } from "@/components/tasks/new-task-form";
 import { FormCard } from "@/components/form";
+import { getCurrentRole } from "@/lib/access-server";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function NewTaskPage({
@@ -26,11 +27,31 @@ export default async function NewTaskPage({
     notFound();
   }
 
-  const { data: assignees } = await supabase
-    .from("users")
-    .select("id, name, email")
-    .eq("is_active", true)
-    .order("name", { ascending: true });
+  const [{ data: assignees }, { data: pmCandidates }, callerRole] =
+    await Promise.all([
+      supabase
+        .from("users")
+        .select("id, name, email")
+        .eq("is_active", true)
+        .is("deleted_at", null)
+        .order("name", { ascending: true }),
+      supabase
+        .from("users")
+        .select("id, name, email")
+        .in("role", ["admin", "pm"])
+        .eq("is_active", true)
+        .is("deleted_at", null)
+        .order("name", { ascending: true }),
+      getCurrentRole(),
+    ]);
+
+  // PM-role caller: default the PM picker to themselves so they don't
+  // have to pick. Field stays editable.
+  const {
+    data: { user: actor },
+  } = await supabase.auth.getUser();
+  const defaultPmId =
+    callerRole === "pm" && actor?.id ? actor.id : null;
 
   return (
     <Page>
@@ -68,6 +89,8 @@ export default async function NewTaskPage({
         <NewTaskForm
           context={{ kind: "milestone", projectId: id, milestoneId }}
           assignees={assignees ?? []}
+          pmCandidates={pmCandidates ?? []}
+          defaultPmId={defaultPmId}
           cancelHref={`/dashboard/projects/${id}`}
         />
       </FormCard>

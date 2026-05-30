@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Breadcrumbs, Page, type Crumb } from "@/components/page-shell";
 import { NewTaskForm, type NewTaskFormContext } from "@/components/tasks/new-task-form";
 import { FormCard } from "@/components/form";
+import { getCurrentRole } from "@/lib/access-server";
 import { createClient } from "@/lib/supabase/server";
 
 // /dashboard/tasks/new
@@ -31,19 +32,30 @@ export default async function NewStandaloneTaskPage({
   const supabase = await createClient();
 
   // Assignees and PM candidates are shared across all three paths.
-  const [{ data: assignees }, { data: pmCandidates }] = await Promise.all([
-    supabase
-      .from("users")
-      .select("id, name, email")
-      .eq("is_active", true)
-      .order("name", { ascending: true }),
-    supabase
-      .from("users")
-      .select("id, name, email")
-      .in("role", ["admin", "pm"])
-      .eq("is_active", true)
-      .order("name", { ascending: true }),
-  ]);
+  const [{ data: assignees }, { data: pmCandidates }, callerRole] =
+    await Promise.all([
+      supabase
+        .from("users")
+        .select("id, name, email")
+        .eq("is_active", true)
+        .is("deleted_at", null)
+        .order("name", { ascending: true }),
+      supabase
+        .from("users")
+        .select("id, name, email")
+        .in("role", ["admin", "pm"])
+        .eq("is_active", true)
+        .is("deleted_at", null)
+        .order("name", { ascending: true }),
+      getCurrentRole(),
+    ]);
+
+  // PM-role caller defaults the PM picker to themselves.
+  const {
+    data: { user: actor },
+  } = await supabase.auth.getUser();
+  const defaultPmId =
+    callerRole === "pm" && actor?.id ? actor.id : null;
 
   let context: NewTaskFormContext;
   let cancelHref: string;
@@ -127,6 +139,7 @@ export default async function NewStandaloneTaskPage({
           context={context}
           assignees={assignees ?? []}
           pmCandidates={pmCandidates ?? []}
+          defaultPmId={defaultPmId}
           cancelHref={cancelHref}
         />
       </FormCard>

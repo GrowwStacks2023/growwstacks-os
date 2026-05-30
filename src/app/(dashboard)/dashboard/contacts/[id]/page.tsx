@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { AttachmentsCard } from "@/components/attachments";
+import { DeleteAction } from "@/components/delete-action";
 import { Page, PageHeader } from "@/components/page-shell";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -13,9 +14,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { canDelete } from "@/lib/access";
+import { getCurrentRole } from "@/lib/access-server";
 import { userDisplay } from "@/lib/display";
 import { TASK_PRIORITY, TASK_STATUS } from "@/lib/status-colors";
 import { createClient } from "@/lib/supabase/server";
+
+import { deleteContact } from "../mutations";
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
   month: "short",
@@ -29,6 +34,8 @@ export default async function ContactDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const role = await getCurrentRole();
+  const mayDelete = canDelete(role, "contact");
   const supabase = await createClient();
 
   const { data: contact, error } = await supabase
@@ -90,6 +97,19 @@ export default async function ContactDetailPage({
         meta={
           contact.is_primary ? (
             <Badge variant="secondary">Primary</Badge>
+          ) : null
+        }
+        action={
+          mayDelete ? (
+            <DeleteAction
+              title={`Delete ${contact.name}?`}
+              description="This cannot be undone. Deals, projects, or tasks referencing this contact must be detached first."
+              onConfirm={async () => {
+                "use server";
+                return deleteContact(id);
+              }}
+              redirectTo="/dashboard/contacts"
+            />
           ) : null
         }
       />
